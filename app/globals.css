@@ -41,7 +41,7 @@
   --card-foreground: #18181b;
   --popover: #ffffff;
   --popover-foreground: #18181b;
-  --primary: #ff5a1f;
+  --primary: #ff6600;
   --primary-foreground: #ffffff;
   --secondary: #f3f3ee;
   --secondary-foreground: #18181b;
@@ -52,8 +52,12 @@
   --destructive: #c63a2a;
   --border: #e7e7df;
   --input: #e7e7df;
-  --ring: #ff5a1f;
+  --ring: #ff6600;
   --status: #16a34a;
+  --status-active: #4ecdc4;
+  --status-inactive: #8b3a3a;
+  --status-acquired: #9d6cff;
+  --status-public: #ffb84d;
   --radius: 0.5rem;
 }
 
@@ -64,7 +68,7 @@
   --card-foreground: #ededec;
   --popover: #141416;
   --popover-foreground: #ededec;
-  --primary: #ff5a1f;
+  --primary: #ff6600;
   --primary-foreground: #0a0a0c;
   --secondary: #1c1c20;
   --secondary-foreground: #ededec;
@@ -75,8 +79,12 @@
   --destructive: #f97162;
   --border: #23232a;
   --input: #23232a;
-  --ring: #ff5a1f;
+  --ring: #ff6600;
   --status: #22c55e;
+  --status-active: #4ecdc4;
+  --status-inactive: #8b3a3a;
+  --status-acquired: #9d6cff;
+  --status-public: #ffb84d;
 }
 
 @layer base {
