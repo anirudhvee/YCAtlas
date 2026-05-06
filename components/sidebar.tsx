@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useUi } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
 import { VIEWS } from "@/lib/views";
 
 interface SidebarProps {
@@ -12,12 +13,13 @@ interface SidebarProps {
 export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
   const view = useUi((s) => s.view);
   const setView = useUi((s) => s.setView);
+  const mounted = useMounted();
 
   return (
     <aside className="flex w-[220px] shrink-0 flex-col border-r border-border bg-card">
       <nav className="flex-1 px-2 py-3">
         {VIEWS.map(({ id, label, icon: Icon }) => {
-          const active = id === view;
+          const active = mounted && id === view;
           return (
             <button
               key={id}
@@ -33,14 +35,13 @@ export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
               <Icon
                 className={cn(
                   "size-3.5 shrink-0 transition-colors",
-                  active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  active
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground"
                 )}
                 strokeWidth={1.75}
               />
               <span className="flex-1 font-medium">{label}</span>
-              <span className="min-w-[1.25rem] text-right font-mono text-[10px] tabular-nums text-muted-foreground/50">
-                {/* badge slot — populated later */}
-              </span>
               {active && (
                 <span className="absolute right-0 top-1/2 h-4 w-px -translate-y-1/2 bg-primary" />
               )}

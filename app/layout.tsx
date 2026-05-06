@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { AskBar } from "@/components/ask-bar";
+import { CompaniesProvider } from "@/components/companies-provider";
+import { HashSync } from "@/components/hash-sync";
 import { loadCompanies } from "@/lib/data";
 import { batchToShort, batchToSortKey } from "@/lib/utils";
 
@@ -54,19 +56,22 @@ export default async function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground">
         <ThemeProvider>
-          <div className="flex h-screen flex-col">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar
-                totalCompanies={totalCompanies}
-                batchRange={batchRange}
-              />
-              <main className="relative flex-1 overflow-hidden">
-                {children}
-                <AskBar />
-              </main>
+          <CompaniesProvider>
+            <HashSync />
+            <div className="flex h-screen flex-col">
+              <Header />
+              <div className="flex flex-1 overflow-hidden">
+                <Sidebar
+                  totalCompanies={totalCompanies}
+                  batchRange={batchRange}
+                />
+                <main className="relative flex-1 overflow-hidden">
+                  {children}
+                  <AskBar />
+                </main>
+              </div>
             </div>
-          </div>
+          </CompaniesProvider>
         </ThemeProvider>
       </body>
     </html>
