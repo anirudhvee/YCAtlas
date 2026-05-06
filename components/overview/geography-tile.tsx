@@ -17,9 +17,8 @@ import { Tile } from "./tile";
 const VIEWBOX_W = 360;
 const VIEWBOX_H = 170;
 
-// Build path + projection once at module load.
-// world-atlas ships TopoJSON without inline types compatible with topojson's
-// strict generics; route through `any` to keep this contained.
+// world-atlas TopoJSON types don't line up with topojson's strict generics;
+// the `any` cast is contained to this module-load conversion.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _topo = landTopology as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,8 +44,7 @@ export function GeographyTile({ companies }: { companies: Company[] }) {
         if (!coord) return null;
         const projected = projection([coord[1], coord[0]]); // [lng, lat]
         if (!projected) return null;
-        // sqrt scaling so the long tail of small cities stays visible
-        // alongside the SF/NY giants.
+        // sqrt scaling keeps the long tail visible alongside SF/NY.
         const r = max > 0 ? 1 + Math.sqrt(a.count / max) * 4 : 1;
         return {
           name: a.name,

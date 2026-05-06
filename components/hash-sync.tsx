@@ -26,7 +26,11 @@ function decodeAndApply() {
     teamSizeMax: decoded.teamSizeMax ?? null,
     search: decoded.search ?? null,
   };
-  useUi.getState().hydrateFromUrl({ view, filters });
+  useUi.getState().hydrateFromUrl({
+    view,
+    filters,
+    phrases: decoded.phrases ?? [],
+  });
 }
 
 export function HashSync() {
@@ -35,8 +39,8 @@ export function HashSync() {
 
   useEffect(() => {
     const writeHash = () => {
-      const { view, filters } = useUi.getState();
-      const encoded = encodeHash({ view, ...filters });
+      const { view, filters, phrases } = useUi.getState();
+      const encoded = encodeHash({ view, ...filters, phrases });
       const newHash = encoded ? `#${encoded}` : "";
       const currentHash = window.location.hash;
       if (newHash === currentHash) return;
@@ -51,7 +55,12 @@ export function HashSync() {
     };
 
     const unsub = useUi.subscribe((state, prev) => {
-      if (state.view === prev.view && state.filters === prev.filters) return;
+      if (
+        state.view === prev.view &&
+        state.filters === prev.filters &&
+        state.phrases === prev.phrases
+      )
+        return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(writeHash, DEBOUNCE_MS);
     });

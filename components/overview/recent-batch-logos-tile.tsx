@@ -12,7 +12,10 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
   const setFilters = useUi((s) => s.setFilters);
 
   const { latestBatch, latestShort, logos, total } = useMemo(() => {
-    const latest = findLatestBatch(companies);
+    // Strict rule first; fall back to any batch with ≥1 company so a
+    // narrow filter doesn't blank out the tile.
+    const latest =
+      findLatestBatch(companies) ?? findLatestBatch(companies, 1);
     if (!latest) {
       return { latestBatch: null, latestShort: "—", logos: [], total: 0 };
     }
@@ -43,8 +46,6 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
           No companies
         </div>
       ) : (
-        // 8×3 = 24 logos. Each cell is aspect-square so logos stay square at
-        // any zoom; the grid lays out columns evenly across full body width.
         <div className="grid grid-cols-8 gap-1">
           {logos.map((c) => (
             <div

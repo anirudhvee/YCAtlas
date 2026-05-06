@@ -54,10 +54,10 @@
   --input: #e7e7df;
   --ring: #ff6600;
   --status: #16a34a;
-  --status-active: #4ecdc4;
-  --status-inactive: #8b3a3a;
-  --status-acquired: #9d6cff;
-  --status-public: #ffb84d;
+  --status-active: #0891b2;
+  --status-inactive: #64748b;
+  --status-acquired: #10b981;
+  --status-public: #a855f7;
   --radius: 0.5rem;
 }
 
@@ -81,10 +81,10 @@
   --input: #23232a;
   --ring: #ff6600;
   --status: #22c55e;
-  --status-active: #4ecdc4;
-  --status-inactive: #8b3a3a;
-  --status-acquired: #9d6cff;
-  --status-public: #ffb84d;
+  --status-active: #0891b2;
+  --status-inactive: #64748b;
+  --status-acquired: #10b981;
+  --status-public: #a855f7;
 }
 
 @layer base {

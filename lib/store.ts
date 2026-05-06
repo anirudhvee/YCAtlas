@@ -55,20 +55,31 @@ interface UiStore {
   view: ViewId;
   filters: FilterState;
   filterRevision: number;
+  phrases: string[];
   setView: (view: ViewId) => void;
   setFilters: (patch: Partial<FilterState>) => void;
   toggleArrayFilter: (key: ArrayFilterKey, value: string) => void;
   clearFilters: () => void;
-  hydrateFromUrl: (next: { view?: ViewId; filters?: Partial<FilterState> }) => void;
+  addPhrase: (p: string) => void;
+  removePhrase: (p: string) => void;
+  hydrateFromUrl: (next: {
+    view?: ViewId;
+    filters?: Partial<FilterState>;
+    phrases?: string[];
+  }) => void;
 }
 
 function isViewId(v: string): v is ViewId {
   return (VIEW_IDS as readonly string[]).includes(v);
 }
 
-function getInitialState(): { view: ViewId; filters: FilterState } {
+function getInitialState(): {
+  view: ViewId;
+  filters: FilterState;
+  phrases: string[];
+} {
   if (typeof window === "undefined") {
-    return { view: "overview", filters: defaultFilters };
+    return { view: "overview", filters: defaultFilters, phrases: [] };
   }
   const decoded = decodeHash(window.location.hash.slice(1));
   const view: ViewId =
@@ -86,7 +97,7 @@ function getInitialState(): { view: ViewId; filters: FilterState } {
     teamSizeMax: decoded.teamSizeMax ?? null,
     search: decoded.search ?? null,
   };
-  return { view, filters };
+  return { view, filters, phrases: decoded.phrases ?? [] };
 }
 
 export const useUi = create<UiStore>((set) => ({
@@ -114,10 +125,21 @@ export const useUi = create<UiStore>((set) => ({
       filters: defaultFilters,
       filterRevision: state.filterRevision + 1,
     })),
+  addPhrase: (p) =>
+    set((state) => {
+      const trimmed = p.trim();
+      if (!trimmed) return {};
+      const key = trimmed.toLowerCase();
+      if (state.phrases.some((x) => x.toLowerCase() === key)) return {};
+      return { phrases: [...state.phrases, trimmed] };
+    }),
+  removePhrase: (p) =>
+    set((state) => ({ phrases: state.phrases.filter((x) => x !== p) })),
   hydrateFromUrl: (next) =>
     set(() => ({
       view: next.view ?? "overview",
       filters: { ...defaultFilters, ...(next.filters ?? {}) },
+      phrases: next.phrases ?? [],
       // intentionally do not bump filterRevision on hydration
     })),
 }));

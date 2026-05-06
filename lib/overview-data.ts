@@ -8,16 +8,18 @@ export const STATUS_KEYS: CompanyStatus[] = [
   "Public",
 ];
 
-// Threshold below which a batch is treated as partial / future / deferral
-// noise and excluded from charts. Applied uniformly across cohort strip,
-// growth, and composition.
+// Threshold below which a batch is treated as partial/future/deferral
+// noise. Applied across cohort strip, growth, and composition.
 export const MIN_BATCH_SIZE = 20;
 
+// Hues anchored to YC orange (~25°): Active is near-complementary cyan,
+// Acquired and Public sit on orange's triadic corners. Tailwind 500–600
+// for dual-theme legibility.
 export const STATUS_COLORS: Record<CompanyStatus, string> = {
-  Active: "#4ecdc4",
-  Inactive: "#8b3a3a",
-  Acquired: "#9d6cff",
-  Public: "#ffb84d",
+  Active: "#0891b2",
+  Inactive: "#64748b",
+  Acquired: "#10b981",
+  Public: "#a855f7",
 };
 
 export interface BatchAggregate {
@@ -80,8 +82,6 @@ export function findLatestBatch(
   companies: Company[],
   minSize = 20,
 ): string | null {
-  // Bucket by batch, then pick the highest sort key whose batch reaches minSize.
-  // This skips future / partial batches that are still being assembled.
   const counts = new Map<string, number>();
   for (const c of companies) {
     if (c.batch === "Unspecified") continue;
@@ -209,10 +209,8 @@ export interface TagGroup {
 }
 
 export const COMPOSITION_TAG_GROUPS: TagGroup[] = [
-  // AI is intentionally broad — YC has fragmented its AI taxonomy into many
-  // sub-tags. We collapse all of them into one signal so the line reflects
-  // "any AI-related company" rather than missing recent batches that tag
-  // themselves only as "Generative AI".
+  // AI is broad on purpose — YC fragments AI tagging across many sub-tags;
+  // collapsing them avoids missing batches tagged only "Generative AI".
   {
     label: "AI",
     match: [
@@ -232,14 +230,16 @@ export const COMPOSITION_TAG_GROUPS: TagGroup[] = [
   { label: "Developer Tools", match: ["Developer Tools", "DevTools"] },
 ];
 
+// Carbon dark-theme palette with the orange-red wedge removed so the
+// YC primary stays the brightest hue on screen.
 export const COMPOSITION_COLORS: Record<string, string> = {
-  AI: "#6b8e9e",
-  SaaS: "#5a9b85",
-  Fintech: "#c4a86b",
-  "Crypto / Web3": "#8a6fa3",
-  Marketplace: "#7a936a",
-  Climate: "#6aa8a8",
-  "Developer Tools": "#8a7d92",
+  AI: "#8a8df0",
+  SaaS: "#33b1ff",
+  Fintech: "#5cc8a8",
+  "Crypto / Web3": "#d4a93c",
+  Marketplace: "#e87aa8",
+  Climate: "#9bd16a",
+  "Developer Tools": "#b483e8",
 };
 
 function companyMatchesTagGroup(c: Company, group: TagGroup): boolean {
@@ -282,9 +282,8 @@ export function compositionSeries(
   const rows: CompositionRow[] = [];
   for (const [batch, { total, tagged, counts }] of buckets) {
     if (total < minSize) continue;
-    // Skip batches where YC hasn't curated tags yet (upcoming batches like
-    // W26 have ~all companies untagged, which makes every series collapse
-    // to near-zero and produces a misleading cliff at the right edge).
+    // Skip batches YC hasn't tagged yet — otherwise every series collapses
+    // to near-zero and the chart shows a misleading cliff at the right.
     if (tagged / total < 0.5) continue;
     const row: CompositionRow = {
       short: batchToShort(batch),
@@ -337,8 +336,7 @@ export function phraseSeries(
     }));
 }
 
-// Approximate lat/lng for major YC cities. Covers ~95% of all YC companies.
-// Tuples are [lat, lng]. Aliases for common spelling variants.
+// [lat, lng] tuples covering ~95% of YC companies, with spelling aliases.
 export const CITY_COORDS: Record<string, [number, number]> = {
   // United States — Bay Area
   "San Francisco": [37.77, -122.42],
@@ -512,8 +510,6 @@ export function cityAggregates(companies: Company[]): CityAggregate[] {
   });
 }
 
-// Approximate lat/lng for major regions, used as a fallback elsewhere.
-// Equirectangular projection at render time.
 export const REGION_COORDS: Record<string, [number, number]> = {
   "United States of America": [39, -98],
   Canada: [60, -100],

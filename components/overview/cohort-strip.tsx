@@ -30,7 +30,6 @@ export function CohortStrip() {
   const mounted = useMounted();
   const [anchor, setAnchor] = useState<TooltipAnchor | null>(null);
 
-  // Strip is always context: built from the unfiltered company set.
   const aggregates = useMemo(
     () =>
       aggregatesAboveMinSize(

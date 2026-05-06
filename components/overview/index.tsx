@@ -17,11 +17,8 @@ export function Overview() {
   const filters = useUi((s) => s.filters);
   const mounted = useMounted();
 
-  // Time-series charts always render against the full set so that selecting
-  // a batch on the cohort strip doesn't collapse them to a single point.
-  // The selected batch becomes a vertical reference marker instead.
-  // List/grid views (Geography, Recent Logos) use the filtered set so they
-  // actually narrow when the user picks a batch.
+  // Time-series charts use the full set + a selectedBatch reference line;
+  // list/grid views use the filtered set so they narrow on selection.
   const listGridCompanies = mounted ? filtered : all;
   const selectedBatch =
     mounted && filters.batches.length === 1 ? filters.batches[0] : null;

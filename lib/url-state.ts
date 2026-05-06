@@ -13,6 +13,7 @@ export interface UrlDecoded {
   teamSizeMin?: number;
   teamSizeMax?: number;
   search?: string;
+  phrases?: string[];
 }
 
 export interface UrlInput {
@@ -28,6 +29,7 @@ export interface UrlInput {
   teamSizeMin: number | null;
   teamSizeMax: number | null;
   search: string | null;
+  phrases: string[];
 }
 
 const SEASON_FROM_SHORT: Record<string, string> = {
@@ -77,6 +79,7 @@ export function encodeHash(state: UrlInput): string {
   if (state.teamSizeMin !== null) parts.push(`tmin=${state.teamSizeMin}`);
   if (state.teamSizeMax !== null) parts.push(`tmax=${state.teamSizeMax}`);
   if (state.search) parts.push(`q=${enc(state.search)}`);
+  if (state.phrases.length) parts.push(`bw=${csvEncode(state.phrases)}`);
 
   return parts.join("&");
 }
@@ -84,8 +87,6 @@ export function encodeHash(state: UrlInput): string {
 export function decodeHash(hash: string): UrlDecoded {
   if (!hash) return {};
   const out: UrlDecoded = {};
-  // URLSearchParams handles percent-decoding for values automatically
-  // when we pull them via .get(). We split CSV ourselves so commas stay raw.
   const params = new URLSearchParams(hash);
 
   const v = params.get("v");
@@ -125,6 +126,9 @@ export function decodeHash(hash: string): UrlDecoded {
 
   const q = params.get("q");
   if (q) out.search = q;
+
+  const bw = params.get("bw");
+  if (bw) out.phrases = csvDecode(bw);
 
   return out;
 }

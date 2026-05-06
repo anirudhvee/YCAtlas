@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import {
-  Line,
-  LineChart,
+  Area,
+  AreaChart,
   ReferenceLine,
   ResponsiveContainer,
   YAxis,
@@ -46,19 +46,31 @@ export function BuzzwordsTile({ companies, selectedBatch }: Props) {
           <div key={phrase} className="flex min-h-0 flex-col gap-1">
             <div className="min-h-0 flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
+                <AreaChart
                   data={data}
                   margin={{ top: 4, right: 2, bottom: 0, left: 2 }}
                 >
+                  <defs>
+                    <linearGradient
+                      id={`tile-fill-${phrase}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="var(--primary)"
+                        stopOpacity={0.35}
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="var(--primary)"
+                        stopOpacity={0.04}
+                      />
+                    </linearGradient>
+                  </defs>
                   <YAxis hide domain={[0, "dataMax"]} />
-                  <Line
-                    type="monotone"
-                    dataKey="pct"
-                    stroke="var(--muted-foreground)"
-                    strokeWidth={1.25}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
                   {markerShort && (
                     <ReferenceLine
                       x={markerShort}
@@ -67,7 +79,16 @@ export function BuzzwordsTile({ companies, selectedBatch }: Props) {
                       ifOverflow="extendDomain"
                     />
                   )}
-                </LineChart>
+                  <Area
+                    type="monotone"
+                    dataKey="pct"
+                    stroke="var(--primary)"
+                    strokeWidth={1.5}
+                    strokeOpacity={0.85}
+                    fill={`url(#tile-fill-${phrase})`}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
             <div className="font-mono text-[10px] text-muted-foreground">
