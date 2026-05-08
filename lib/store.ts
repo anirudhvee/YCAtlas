@@ -56,12 +56,14 @@ interface UiStore {
   filters: FilterState;
   filterRevision: number;
   phrases: string[];
+  selectedCompany: Company | null;
   setView: (view: ViewId) => void;
   setFilters: (patch: Partial<FilterState>) => void;
   toggleArrayFilter: (key: ArrayFilterKey, value: string) => void;
   clearFilters: () => void;
   addPhrase: (p: string) => void;
   removePhrase: (p: string) => void;
+  setSelectedCompany: (c: Company | null) => void;
   hydrateFromUrl: (next: {
     view?: ViewId;
     filters?: Partial<FilterState>;
@@ -103,6 +105,7 @@ function getInitialState(): {
 export const useUi = create<UiStore>((set) => ({
   ...getInitialState(),
   filterRevision: 0,
+  selectedCompany: null,
   setView: (view) => set({ view }),
   setFilters: (patch) =>
     set((state) => ({
@@ -135,6 +138,7 @@ export const useUi = create<UiStore>((set) => ({
     }),
   removePhrase: (p) =>
     set((state) => ({ phrases: state.phrases.filter((x) => x !== p) })),
+  setSelectedCompany: (c) => set({ selectedCompany: c }),
   hydrateFromUrl: (next) =>
     set(() => ({
       view: next.view ?? "overview",

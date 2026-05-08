@@ -8,6 +8,7 @@ import { Boards } from "@/components/boards";
 import { Globe } from "@/components/globe";
 import { Timeline } from "@/components/timeline";
 import { FilterChipBar } from "@/components/filter-chip-bar";
+import { DetailDrawer } from "@/components/detail-drawer";
 import { useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import { VIEWS } from "@/lib/views";
@@ -39,6 +40,7 @@ export function Canvas() {
           <ViewPlaceholder view={effectiveView} />
         )}
       </div>
+      <DetailDrawer />
     </div>
   );
 }

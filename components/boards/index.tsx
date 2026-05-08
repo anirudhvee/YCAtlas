@@ -34,6 +34,7 @@ export function Boards() {
   const filters = useUi((s) => s.filters);
   const setFilters = useUi((s) => s.setFilters);
   const toggleArrayFilter = useUi((s) => s.toggleArrayFilter);
+  const setSelectedCompany = useUi((s) => s.setSelectedCompany);
   const mounted = useMounted();
 
   const data = useMemo(() => {
@@ -140,13 +141,19 @@ export function Boards() {
           activeBatches={data.activeBatches}
           onToggle={(b) => toggleArrayFilter("batches", b)}
         />
-        <LargestBoard rows={data.largest} />
+        <LargestBoard
+          rows={data.largest}
+          onSelect={(c) => setSelectedCompany(c)}
+        />
         <RegionsBoard
           rows={data.regions}
           activeRegions={data.activeRegions}
           onToggle={(r) => toggleArrayFilter("regions", r)}
         />
-        <PivotsBoard rows={data.pivots} />
+        <PivotsBoard
+          rows={data.pivots}
+          onSelect={(c) => setSelectedCompany(c)}
+        />
         <TagsBoard
           rows={data.tags}
           latestBatch={data.latest?.batch ?? null}
@@ -286,7 +293,13 @@ function TopBatchesBoard({
   );
 }
 
-function LargestBoard({ rows }: { rows: Company[] }) {
+function LargestBoard({
+  rows,
+  onSelect,
+}: {
+  rows: Company[];
+  onSelect: (c: Company) => void;
+}) {
   const max = rows[0]?.team_size ?? 1;
   return (
     <BoardCard title="Largest companies by team size" caption="• by status">
@@ -302,9 +315,7 @@ function LargestBoard({ rows }: { rows: Company[] }) {
               <button
                 key={c.id}
                 type="button"
-                onClick={() => {
-                  // TODO(detail-drawer): open detail drawer.
-                }}
+                onClick={() => onSelect(c)}
                 className="group/row flex w-full items-center gap-3 rounded-sm py-1 pl-1 pr-2 text-left font-mono text-[11px] tabular-nums transition-colors hover:bg-muted/50"
               >
                 <span className="w-4 text-right text-muted-foreground/60">
@@ -385,7 +396,13 @@ function RegionsBoard({
 
 type PivotRow = Company & { firstFormerName: string };
 
-function PivotsBoard({ rows }: { rows: PivotRow[] }) {
+function PivotsBoard({
+  rows,
+  onSelect,
+}: {
+  rows: PivotRow[];
+  onSelect: (c: Company) => void;
+}) {
   return (
     <BoardCard title="Notable pivots" caption="renamed">
       <div className="flex flex-col gap-1">
@@ -396,9 +413,7 @@ function PivotsBoard({ rows }: { rows: PivotRow[] }) {
             <button
               key={c.id}
               type="button"
-              onClick={() => {
-                // TODO(detail-drawer): open detail drawer.
-              }}
+              onClick={() => onSelect(c)}
               className="group/row grid w-full grid-cols-[18px_1fr_12px_1fr_auto] items-center gap-2 rounded-sm py-1.5 pl-1 pr-2 text-left font-mono text-[10.5px] tabular-nums transition-colors hover:bg-muted/50"
             >
               <span className="text-right text-muted-foreground/60">

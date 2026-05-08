@@ -7,7 +7,8 @@ import { MeshBasicMaterial, Color } from "three";
 import countriesTopology from "world-atlas/countries-110m.json";
 import { useTheme } from "next-themes";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies } from "@/lib/store";
+import { useFilteredCompanies, useUi } from "@/lib/store";
+import type { Company } from "@/lib/types";
 import {
   CITY_COORDS,
   MIN_BATCH_SIZE,
@@ -32,6 +33,7 @@ interface CityDot {
   topCount: number;
   dominantStatus: "Active" | "Inactive" | "Acquired" | "Public";
   size: number;
+  representative: Company;
 }
 
 interface TopRing {
@@ -85,6 +87,7 @@ function pickTheme(themeKey: string | undefined): ResolvedTheme {
 export function GlobeView() {
   const all = useCompanies();
   const filtered = useFilteredCompanies(all);
+  const setSelectedCompany = useUi((s) => s.setSelectedCompany);
   const { resolvedTheme } = useTheme();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -150,6 +153,7 @@ export function GlobeView() {
       statusCounts: Record<string, number>;
       maxTeam: number;
       maxTeamStatus: CityDot["dominantStatus"];
+      representative: Company;
     }
     const map = new Map<string, Bucket>();
     for (const c of filtered) {
@@ -172,6 +176,7 @@ export function GlobeView() {
           statusCounts: {},
           maxTeam: 0,
           maxTeamStatus: "Active",
+          representative: c,
         };
         map.set(city, b);
       }
@@ -182,6 +187,7 @@ export function GlobeView() {
       if (ts > b.maxTeam) {
         b.maxTeam = ts;
         b.maxTeamStatus = c.status as CityDot["dominantStatus"];
+        b.representative = c;
       }
     }
     const arr = [...map.values()];
@@ -196,6 +202,7 @@ export function GlobeView() {
         topCount: b.topCount,
         dominantStatus: b.maxTeamStatus,
         size: 0.55 + t * 1.85,
+        representative: b.representative,
       };
     });
   }, [filtered, maxBatchSortKey]);
@@ -344,8 +351,9 @@ export function GlobeView() {
               ${x.topCount > 0 ? `<div style="color:${theme.primary};margin-top:3px">${x.topCount} top YC</div>` : ""}
             </div>`;
           }}
-          onPointClick={() => {
-            // TODO(detail-drawer): open detail drawer for this city.
+          onPointClick={(point: object) => {
+            const dot = point as CityDot;
+            if (dot.representative) setSelectedCompany(dot.representative);
           }}
           ringsData={topRings}
           ringLat={(r: object) => (r as TopRing).lat}

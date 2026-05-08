@@ -233,6 +233,7 @@ const TOOLTIP_GAP = 18;
 function WallCell({ company }: { company: Company }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [tip, setTip] = useState<TipPos | null>(null);
+  const setSelectedCompany = useUi((s) => s.setSelectedCompany);
 
   const open = () => {
     if (!ref.current) return;
@@ -259,9 +260,7 @@ function WallCell({ company }: { company: Company }) {
         onMouseLeave={close}
         onFocus={open}
         onBlur={close}
-        onClick={() => {
-          // TODO(Prompt 7): open the company detail drawer for `company`.
-        }}
+        onClick={() => setSelectedCompany(company)}
         className={cn(
           "group/cell relative block size-12 origin-center rounded-sm",
           // No bg when there's an image; transparent PNGs sit directly
