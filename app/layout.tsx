@@ -62,6 +62,13 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground">
+        {process.env.NODE_ENV !== "production" && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `addEventListener('pageshow',function(e){var n=performance.getEntriesByType('navigation')[0];if(e.persisted||(n&&n.type==='back_forward'))location.reload();});`,
+            }}
+          />
+        )}
         <ThemeProvider>
           <CompaniesProvider>
             <HashSync />

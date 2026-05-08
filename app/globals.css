@@ -98,5 +98,60 @@
   html {
     @apply font-sans;
   }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.slider-clean {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.slider-clean::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: transparent;
+}
+.slider-clean::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: transparent;
+}
+.slider-clean::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 9999px;
+  background: var(--primary);
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 1px var(--primary);
+  transition: transform 120ms ease;
+}
+.slider-clean::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--primary);
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 1px var(--primary);
+  transition: transform 120ms ease;
+}
+.slider-clean:hover::-webkit-slider-thumb,
+.slider-clean:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.slider-clean:hover::-moz-range-thumb,
+.slider-clean:focus-visible::-moz-range-thumb {
+  transform: scale(1.15);
 }
 

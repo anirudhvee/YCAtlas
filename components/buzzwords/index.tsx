@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -10,39 +11,45 @@ import {
   YAxis,
 } from "recharts";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies, useUi } from "@/lib/store";
+import { filterCompanies, useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import { phraseSeries } from "@/lib/overview-data";
 import { batchToShort, cn } from "@/lib/utils";
 import type { Company } from "@/lib/types";
 
-// 11 defaults + the add-phrase cell completes a 12-up grid.
+// 11 defaults + the add-phrase cell complete a 12-up grid.
 const DEFAULT_PHRASES = [
   "AI",
   "agent",
-  "Cursor for",
-  "MCP",
-  "RAG",
-  "voice AI",
   "agentic",
-  "evals",
-  "fine-tune",
-  "multimodal",
+  "Cursor for",
+  "Claude",
+  "autonomous",
+  "real-time",
+  "marketplace",
+  "social network",
+  "on-demand",
   "crypto",
 ];
 
 export function Buzzwords() {
   const all = useCompanies();
-  const filtered = useFilteredCompanies(all);
   const filters = useUi((s) => s.filters);
   const phrases = useUi((s) => s.phrases);
   const addPhrase = useUi((s) => s.addPhrase);
   const removePhrase = useUi((s) => s.removePhrase);
   const mounted = useMounted();
 
+  // Time-series view: strip the batches filter so the selected
+  // batch shows as a ReferenceLine instead of collapsing the chart.
+  const filteredForBuzzwords = useMemo(
+    () => filterCompanies(all, { ...filters, batches: [] }),
+    [all, filters],
+  );
+
   const selectedBatch =
     mounted && filters.batches.length === 1 ? filters.batches[0] : null;
-  const companies = mounted ? filtered : all;
+  const companies = mounted ? filteredForBuzzwords : all;
 
   const list = useMemo(() => {
     const seen = new Set(DEFAULT_PHRASES.map((p) => p.toLowerCase()));
@@ -63,7 +70,7 @@ export function Buzzwords() {
   return (
     <div
       className="h-full overflow-y-auto p-4"
-      style={{ paddingBottom: "60px" }}
+      style={{ paddingBottom: "120px" }}
     >
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {list.map(({ phrase, removable }) => (
@@ -250,15 +257,12 @@ function AddPhraseCell({
       <div className="flex min-h-0 flex-1 flex-col items-stretch justify-center gap-2">
         <label
           className={cn(
-            "flex items-center gap-2 rounded border bg-background px-3 py-2 transition-colors",
+            "flex items-center gap-2 rounded border bg-background pl-3 pr-1.5 py-1.5 transition-colors",
             error
               ? "border-destructive/60"
               : "border-border focus-within:border-primary/70",
           )}
         >
-          <span className="font-mono text-[12px] leading-none text-primary">
-            /
-          </span>
           <input
             type="text"
             value={draft}
@@ -275,23 +279,20 @@ function AddPhraseCell({
             disabled={!canSubmit}
             aria-label="Add phrase"
             className={cn(
-              "font-mono text-[10px] leading-none transition-colors",
+              "grid size-6 shrink-0 place-items-center rounded transition-colors",
               canSubmit
-                ? "text-primary hover:underline"
+                ? "bg-primary/15 text-primary hover:bg-primary/25"
                 : "text-muted-foreground/40",
             )}
           >
-            ↩
+            <Plus className="size-3.5" strokeWidth={2} />
           </button>
         </label>
-        <span
-          className={cn(
-            "font-mono text-[9px]",
-            error ? "text-destructive" : "text-muted-foreground/60",
-          )}
-        >
-          {error ?? "enter to add · phrases persist in URL"}
-        </span>
+        {error && (
+          <span className="font-mono text-[9px] text-destructive">
+            {error}
+          </span>
+        )}
       </div>
     </form>
   );

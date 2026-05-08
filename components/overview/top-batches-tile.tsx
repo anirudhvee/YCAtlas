@@ -68,7 +68,7 @@ export function TopBatchesTile({ companies, selectedBatch }: Props) {
                     "absolute inset-y-0 left-0 transition-colors",
                     isSelected
                       ? "bg-primary"
-                      : "bg-foreground/60 group-hover/row:bg-primary",
+                      : "bg-primary/50 group-hover/row:bg-primary",
                   )}
                   style={{ width: `${(r.pctTopCompany / max) * 100}%` }}
                 />

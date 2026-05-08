@@ -216,7 +216,7 @@ export interface TagGroup {
 }
 
 export const COMPOSITION_TAG_GROUPS: TagGroup[] = [
-  // AI is broad on purpose — YC fragments AI tagging across many sub-tags;
+  // AI is broad on purpose: YC fragments AI tagging across many sub-tags;
   // collapsing them avoids missing batches tagged only "Generative AI".
   {
     label: "AI",
@@ -289,7 +289,7 @@ export function compositionSeries(
   const rows: CompositionRow[] = [];
   for (const [batch, { total, tagged, counts }] of buckets) {
     if (total < minSize) continue;
-    // Skip batches YC hasn't tagged yet — otherwise every series collapses
+    // Skip batches YC hasn't tagged yet; otherwise every series collapses
     // to near-zero and the chart shows a misleading cliff at the right.
     if (tagged / total < 0.5) continue;
     const row: CompositionRow = {
@@ -345,7 +345,7 @@ export function phraseSeries(
 
 // [lat, lng] tuples covering ~95% of YC companies, with spelling aliases.
 export const CITY_COORDS: Record<string, [number, number]> = {
-  // United States — Bay Area
+  // United States, Bay Area
   "San Francisco": [37.77, -122.42],
   "Mountain View": [37.39, -122.08],
   "Palo Alto": [37.44, -122.14],
@@ -358,7 +358,7 @@ export const CITY_COORDS: Record<string, [number, number]> = {
   "San Jose": [37.34, -121.89],
   Burlingame: [37.58, -122.36],
   "South San Francisco": [37.65, -122.41],
-  // United States — other
+  // United States, other
   "New York": [40.71, -74.0],
   "New York City": [40.71, -74.0],
   Brooklyn: [40.68, -73.94],

@@ -19,9 +19,7 @@ export function CompaniesProvider({ children }: { children: React.ReactNode }) {
       .then((data) => {
         if (!cancelled) setCompanies(data);
       })
-      .catch(() => {
-        // leave as empty array
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

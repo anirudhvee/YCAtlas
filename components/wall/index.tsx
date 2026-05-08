@@ -139,7 +139,7 @@ export function Wall() {
           className="rounded border border-border bg-card px-2 py-0.5 text-[11px] text-foreground outline-none transition-colors hover:border-foreground/30 focus:border-primary/40"
           aria-label="Pick batch"
         >
-          <option value="">— pick batch</option>
+          <option value="">pick batch</option>
           {allBatches.map((b) => (
             <option key={b} value={b}>
               {batchToShort(b)}
@@ -159,7 +159,7 @@ export function Wall() {
         {total === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
-              <span>No companies match —</span>
+              <span>No companies match</span>
               <button
                 type="button"
                 onClick={clearFilters}
@@ -183,7 +183,7 @@ export function Wall() {
             </div>
             {total > MAX_CELLS && (
               <div className="mt-6 text-center font-mono text-[10px] text-muted-foreground">
-                showing {MAX_CELLS} of {total.toLocaleString()} — refine filter
+                showing {MAX_CELLS} of {total.toLocaleString()} · refine filter
                 to see more
               </div>
             )}
@@ -264,13 +264,13 @@ function WallCell({ company }: { company: Company }) {
         }}
         className={cn(
           "group/cell relative block size-12 origin-center rounded-sm",
-          // No bg when there's an image — transparent PNGs sit directly
+          // No bg when there's an image; transparent PNGs sit directly
           // on canvas so non-square logos don't show a phantom square.
           !company.small_logo_thumb_url && "bg-muted/40",
           "transition-transform duration-150 ease-out",
           "hover:z-20 hover:scale-[1.5]",
         )}
-        aria-label={`${company.name} — ${batchToShort(company.batch)}`}
+        aria-label={`${company.name} · ${batchToShort(company.batch)}`}
       >
         {company.small_logo_thumb_url ? (
           // eslint-disable-next-line @next/next/no-img-element

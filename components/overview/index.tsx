@@ -29,16 +29,13 @@ export function Overview() {
       style={{ paddingBottom: "60px" }}
     >
       <div className="flex flex-col gap-6 p-6">
-        {/* Row 1 */}
         <CohortStrip />
 
-        {/* Row 2 — time series, always full data. Stack on narrow widths. */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <GrowthChart companies={all} selectedBatch={selectedBatch} />
           <CompositionChart companies={all} selectedBatch={selectedBatch} />
         </div>
 
-        {/* Row 3 — tiles. 1 col → 2 cols → 4 cols by viewport. */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <GeographyTile companies={listGridCompanies} />
           <TopBatchesTile companies={all} selectedBatch={selectedBatch} />

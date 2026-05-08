@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useCompanies } from "@/components/companies-provider";
 import { useFilteredCompanies, useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
@@ -182,12 +182,12 @@ export function Heatmap() {
       </div>
 
       <div
-        className="flex-1 overflow-auto p-4"
+        className="flex-1 overflow-hidden p-4"
         style={{ paddingBottom: "60px" }}
       >
         {data.rowLabels.length === 0 || data.cols.length === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
-            Not enough data — refine filter
+            Not enough data · refine filter
           </div>
         ) : (
           <HeatmapMatrix
@@ -253,49 +253,109 @@ function HeatmapMatrix({
     ? cols.findIndex((c) => c.batch === activeBatch)
     : -1;
 
-  const gridStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: `96px repeat(${M}, minmax(26px, 1fr))`,
-    gridTemplateRows: `20px repeat(${N}, minmax(22px, 1fr))`,
-    gap: "2px",
-    minHeight: "100%",
-    minWidth: "100%",
+  // Labels pane scroll-syncs to the data pane via the onScroll
+  // handler below; sticky positioning leaked underlying cells.
+  const sharedRowTemplate = `20px repeat(${N}, minmax(34px, 1fr))`;
+  const labelsScrollRef = useRef<HTMLDivElement | null>(null);
+  const dataScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const handleDataScroll = () => {
+    const labels = labelsScrollRef.current;
+    const dataEl = dataScrollRef.current;
+    if (!labels || !dataEl) return;
+    if (labels.scrollTop !== dataEl.scrollTop) {
+      labels.scrollTop = dataEl.scrollTop;
+    }
   };
 
   return (
     <>
-      <div style={gridStyle} className="font-mono text-[9px]">
-        <div />
-        {cols.map((c, i) => (
+      <div className="flex h-full font-mono text-[9px]">
+        <div
+          ref={labelsScrollRef}
+          onWheel={(e) => {
+            if (dataScrollRef.current) {
+              dataScrollRef.current.scrollTop += e.deltaY;
+            }
+          }}
+          className="shrink-0 overflow-hidden"
+          style={{ width: 110 }}
+        >
           <div
-            key={c.batch}
-            className={cn(
-              "grid place-items-center text-muted-foreground tabular-nums",
-              i === selectedColIdx && "text-primary",
-            )}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "110px",
+              gridTemplateRows: sharedRowTemplate,
+              gap: "2px",
+              minHeight: "100%",
+            }}
           >
-            {c.short}
+            <div />
+            {rowLabels.map((label) => {
+              const isActiveRow = activeRow === label;
+              return (
+                <div
+                  key={label}
+                  className={cn(
+                    "flex items-center justify-end overflow-hidden pr-2 text-right leading-tight",
+                    isActiveRow ? "text-primary" : "text-foreground/80",
+                  )}
+                  title={label}
+                >
+                  <span>{label}</span>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        </div>
 
-        {rowLabels.map((label, ri) => {
-          const isActiveRow = activeRow === label;
-          return (
-            <RowFragment
-              key={label}
-              label={label}
-              isActiveRow={isActiveRow}
-              cols={cols}
-              row={matrix[ri]}
-              max={max}
-              ri={ri}
-              selectedColIdx={selectedColIdx}
-              activeBatch={activeBatch}
-              onCellClick={onCellClick}
-              setHover={setHover}
-            />
-          );
-        })}
+        <div
+          ref={dataScrollRef}
+          onScroll={handleDataScroll}
+          className="min-w-0 flex-1 overflow-auto"
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${M}, minmax(26px, 1fr))`,
+              gridTemplateRows: sharedRowTemplate,
+              gap: "2px",
+              minHeight: "100%",
+              minWidth: "100%",
+            }}
+          >
+            {cols.map((c, i) => (
+              <div
+                key={c.batch}
+                className={cn(
+                  "grid place-items-center text-muted-foreground tabular-nums",
+                  i === selectedColIdx && "text-primary",
+                )}
+              >
+                {c.short}
+              </div>
+            ))}
+
+            {rowLabels.map((label, ri) => {
+              const isActiveRow = activeRow === label;
+              return (
+                <RowDataCells
+                  key={label}
+                  label={label}
+                  isActiveRow={isActiveRow}
+                  cols={cols}
+                  row={matrix[ri]}
+                  max={max}
+                  ri={ri}
+                  selectedColIdx={selectedColIdx}
+                  activeBatch={activeBatch}
+                  onCellClick={onCellClick}
+                  setHover={setHover}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {hover && (
@@ -326,7 +386,7 @@ interface RowProps {
   setHover: (h: HoverState | null) => void;
 }
 
-function RowFragment({
+function RowDataCells({
   label,
   isActiveRow,
   cols,
@@ -340,15 +400,6 @@ function RowFragment({
 }: RowProps) {
   return (
     <>
-      <div
-        className={cn(
-          "flex items-center justify-end overflow-hidden pr-1 text-right",
-          isActiveRow ? "text-primary" : "text-foreground/80",
-        )}
-        title={label}
-      >
-        <span className="truncate">{label}</span>
-      </div>
       {cols.map((c, ci) => {
         const v = row[ci];
         const isActiveCell = isActiveRow && c.batch === activeBatch;

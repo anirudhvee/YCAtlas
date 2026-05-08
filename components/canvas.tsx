@@ -4,6 +4,9 @@ import { Overview } from "@/components/overview";
 import { Wall } from "@/components/wall";
 import { Heatmap } from "@/components/heatmap";
 import { Buzzwords } from "@/components/buzzwords";
+import { Boards } from "@/components/boards";
+import { Globe } from "@/components/globe";
+import { Timeline } from "@/components/timeline";
 import { FilterChipBar } from "@/components/filter-chip-bar";
 import { useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
@@ -26,6 +29,12 @@ export function Canvas() {
           <Heatmap />
         ) : effectiveView === "buzzwords" ? (
           <Buzzwords />
+        ) : effectiveView === "boards" ? (
+          <Boards />
+        ) : effectiveView === "globe" ? (
+          <Globe />
+        ) : effectiveView === "timeline" ? (
+          <Timeline />
         ) : (
           <ViewPlaceholder view={effectiveView} />
         )}
