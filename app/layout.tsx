@@ -8,6 +8,7 @@ import { AskBar } from "@/components/ask-bar";
 import { CompaniesProvider } from "@/components/companies-provider";
 import { HashSync } from "@/components/hash-sync";
 import { loadCompanies } from "@/lib/data";
+import { MIN_BATCH_SIZE } from "@/lib/overview-data";
 import { batchToShort, batchToSortKey } from "@/lib/utils";
 
 const geistSans = Geist({
@@ -28,8 +29,14 @@ export const metadata: Metadata = {
 async function loadShellStats() {
   try {
     const companies = await loadCompanies();
-    const sorted = [...new Set(companies.map((c) => c.batch))]
-      .filter((b) => b !== "Unspecified")
+    const counts = new Map<string, number>();
+    for (const c of companies) {
+      if (c.batch === "Unspecified") continue;
+      counts.set(c.batch, (counts.get(c.batch) ?? 0) + 1);
+    }
+    const sorted = [...counts.entries()]
+      .filter(([, n]) => n >= MIN_BATCH_SIZE)
+      .map(([b]) => b)
       .sort((a, b) => batchToSortKey(a) - batchToSortKey(b));
     const range =
       sorted.length > 0

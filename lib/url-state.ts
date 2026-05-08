@@ -34,13 +34,13 @@ export interface UrlInput {
 
 const SEASON_FROM_SHORT: Record<string, string> = {
   W: "Winter",
-  X: "Spring",
+  P: "Spring",
   S: "Summer",
   F: "Fall",
 };
 
 function batchFromShort(s: string): string {
-  const m = /^([WXSF])(\d{2})$/.exec(s);
+  const m = /^([WPSF])(\d{2})$/.exec(s);
   if (!m) return s;
   return `${SEASON_FROM_SHORT[m[1]]} ${2000 + Number(m[2])}`;
 }

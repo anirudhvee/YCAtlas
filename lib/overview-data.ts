@@ -10,7 +10,7 @@ export const STATUS_KEYS: CompanyStatus[] = [
 
 // Threshold below which a batch is treated as partial/future/deferral
 // noise. Applied across cohort strip, growth, and composition.
-export const MIN_BATCH_SIZE = 20;
+export const MIN_BATCH_SIZE = 5;
 
 // Hues anchored to YC orange (~25°): Active is near-complementary cyan,
 // Acquired and Public sit on orange's triadic corners. Tailwind 500–600
@@ -108,9 +108,16 @@ export function topBatchesByPctTopCompany(
     .slice(0, n);
 }
 
+// Non-geographic tags that yc-oss ships in `regions`. Skipping them so
+// "Top regions" reads as actual countries, not work-mode flags or
+// continent rollups.
 const META_REGIONS = new Set([
   "Remote",
+  "Fully Remote",
   "Partly Remote",
+  "Unspecified",
+  "Worldwide",
+  "Global",
   "America / Canada",
   "Europe",
   "Asia",

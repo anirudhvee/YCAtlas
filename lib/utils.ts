@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 const SEASON_TO_SHORT: Record<string, string> = {
   Winter: "W",
-  Spring: "X",
+  Spring: "P",
   Summer: "S",
   Fall: "F",
 };
