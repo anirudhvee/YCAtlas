@@ -36,3 +36,44 @@ export function batchToSortKey(batch: string): number {
   }
   return Number(year) * 10 + order;
 }
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev: number[] = new Array(b.length + 1);
+  const curr: number[] = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+  }
+  return prev[b.length];
+}
+
+// yc-oss `former_names` is messy: leading whitespace, casing variants,
+// and the current name listed alongside genuine prior names. Trim,
+// dedupe case-insensitively, and drop anything within Levenshtein 2 of
+// the current name (catches "MatterPort" ↔ "Matterport").
+export function cleanFormerNames(
+  currentName: string,
+  formerNames: string[],
+): string[] {
+  const target = currentName.trim().toLowerCase();
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of formerNames) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    if (levenshtein(key, target) <= 2) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Gem } from "lucide-react";
 import { useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
-import { batchToShort, cn } from "@/lib/utils";
+import { batchToShort, cleanFormerNames, cn } from "@/lib/utils";
 import type { Company, CompanyStatus } from "@/lib/types";
 
 const STATUS_COLORS: Record<CompanyStatus, string> = {
@@ -23,11 +23,7 @@ function formatLaunched(ts: number): string {
 }
 
 function firstFormerName(c: Company): string | null {
-  return (
-    c.former_names.find(
-      (n) => n.trim().toLowerCase() !== c.name.trim().toLowerCase(),
-    ) ?? null
-  );
+  return cleanFormerNames(c.name, c.former_names)[0] ?? null;
 }
 
 function parseLocation(allLocations: string): string | null {
