@@ -1,4 +1,5 @@
 import { ThemeToggle } from "./theme-toggle";
+import { AskTrigger } from "./ask-trigger";
 
 export function Header() {
   return (
@@ -6,11 +7,12 @@ export function Header() {
       <div className="font-mono text-[13px] font-semibold tracking-[0.22em] text-primary select-none">
         YC ATLAS
       </div>
+      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
+        <div className="pointer-events-auto">
+          <AskTrigger />
+        </div>
+      </div>
       <div className="flex items-center gap-4">
-        <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
-          Built with public YC data · 2026
-        </span>
-        <span className="hidden h-3 w-px bg-border sm:inline-block" />
         <ThemeToggle />
         <a
           href="https://github.com/anirudhvee/YCAtlas"

@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
-import { AskBar } from "@/components/ask-bar";
+import { AskPanel } from "@/components/ask-panel";
 import { CompaniesProvider } from "@/components/companies-provider";
 import { HashSync } from "@/components/hash-sync";
 import { loadCompanies } from "@/lib/data";
@@ -81,7 +81,7 @@ export default async function RootLayout({
                 />
                 <main className="relative flex-1 overflow-hidden">
                   {children}
-                  <AskBar />
+                  <AskPanel />
                 </main>
               </div>
             </div>

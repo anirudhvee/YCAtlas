@@ -57,6 +57,7 @@ interface UiStore {
   filterRevision: number;
   phrases: string[];
   selectedCompany: Company | null;
+  askOpen: boolean;
   setView: (view: ViewId) => void;
   setFilters: (patch: Partial<FilterState>) => void;
   toggleArrayFilter: (key: ArrayFilterKey, value: string) => void;
@@ -64,6 +65,8 @@ interface UiStore {
   addPhrase: (p: string) => void;
   removePhrase: (p: string) => void;
   setSelectedCompany: (c: Company | null) => void;
+  setAskOpen: (open: boolean) => void;
+  toggleAsk: () => void;
   hydrateFromUrl: (next: {
     view?: ViewId;
     filters?: Partial<FilterState>;
@@ -106,6 +109,9 @@ export const useUi = create<UiStore>((set) => ({
   ...getInitialState(),
   filterRevision: 0,
   selectedCompany: null,
+  askOpen: false,
+  setAskOpen: (open) => set({ askOpen: open }),
+  toggleAsk: () => set((state) => ({ askOpen: !state.askOpen })),
   setView: (view) => set({ view }),
   setFilters: (patch) =>
     set((state) => ({
