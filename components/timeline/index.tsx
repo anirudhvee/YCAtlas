@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -13,34 +13,60 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import { useCompanies } from "@/components/companies-provider";
-import { filterCompanies, useUi } from "@/lib/store";
+import { filterCompanies, useUi, type TimelineMetric } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import {
   MIN_BATCH_SIZE,
   STATUS_COLORS,
   STATUS_KEYS,
+  isMatureBatch,
   primaryRegion,
 } from "@/lib/overview-data";
 import type { Company, CompanyStatus } from "@/lib/types";
 import { batchToShort, batchToSortKey, cn } from "@/lib/utils";
 
-type Metric =
-  | "status"
-  | "stage"
-  | "industry"
-  | "team_size"
-  | "top_company"
-  | "region";
+type Metric = TimelineMetric;
 
-const METRIC_OPTIONS: {
+const INTL_META = new Set([
+  "Remote",
+  "Fully Remote",
+  "Partly Remote",
+  "Unspecified",
+  "Worldwide",
+  "Global",
+  "America / Canada",
+  "Europe",
+  "Asia",
+  "Africa",
+  "Oceania",
+  "Latin America",
+  "Middle East",
+  "South Asia",
+]);
+const INTL_US = new Set(["United States of America", "USA"]);
+function classifyIntl(c: Company): "us" | "nonus" | null {
+  let hasUs = false;
+  let hasNonUs = false;
+  for (const r of c.regions) {
+    if (INTL_US.has(r)) hasUs = true;
+    else if (!INTL_META.has(r)) hasNonUs = true;
+  }
+  if (hasUs) return "us";
+  if (hasNonUs) return "nonus";
+  return null;
+}
+
+interface MetricOption {
   id: Metric;
   label: string;
   hint: string;
-}[] = [
+}
+
+const OUTCOME_METRICS: MetricOption[] = [
   {
     id: "status",
     label: "by status",
-    hint: "alive vs failed vs exited per batch",
+    hint: "Active, Inactive, Acquired, and Public per batch",
   },
   {
     id: "stage",
@@ -48,25 +74,43 @@ const METRIC_OPTIONS: {
     hint: "Seed / Early / Growth / Public per batch",
   },
   {
+    id: "top_company",
+    label: "% top",
+    hint: "share of each batch flagged top-company, for batches 5+ years old",
+  },
+];
+
+const COMPOSITION_METRICS: MetricOption[] = [
+  {
     id: "industry",
     label: "by industry",
     hint: "industry mix per batch",
-  },
-  {
-    id: "team_size",
-    label: "team size",
-    hint: "total employees added per batch",
-  },
-  {
-    id: "top_company",
-    label: "% top",
-    hint: "share of each batch flagged top-company",
   },
   {
     id: "region",
     label: "by region",
     hint: "country mix per batch",
   },
+  {
+    id: "intl",
+    label: "US vs non-US",
+    hint: "US vs non-US companies per batch",
+  },
+  {
+    id: "team_size",
+    label: "median team size",
+    hint: "median current headcount across each batch's companies",
+  },
+  {
+    id: "country_diversity",
+    label: "country diversity",
+    hint: "distinct non-US countries represented per batch",
+  },
+];
+
+const METRIC_OPTIONS: MetricOption[] = [
+  ...OUTCOME_METRICS,
+  ...COMPOSITION_METRICS,
 ];
 
 const STAGE_KEYS = ["Seed", "Early", "Growth", "Public"] as const;
@@ -202,25 +246,76 @@ function buildSeries(buckets: BatchBucket[], metric: Metric): BuiltSeries {
 
   if (metric === "team_size") {
     const rows = buckets.map((b) => {
-      let total = 0;
-      for (const c of b.companies) total += c.team_size ?? 0;
-      return { short: b.short, batch: b.batch, total };
+      const sizes: number[] = [];
+      for (const c of b.companies) {
+        if (typeof c.team_size === "number") sizes.push(c.team_size);
+      }
+      sizes.sort((x, y) => x - y);
+      let median = 0;
+      if (sizes.length > 0) {
+        const mid = Math.floor(sizes.length / 2);
+        median =
+          sizes.length % 2 === 0 ? (sizes[mid - 1] + sizes[mid]) / 2 : sizes[mid];
+      }
+      return { short: b.short, batch: b.batch, median };
     });
     return {
       rows,
-      keys: ["total"],
-      colors: { total: "#33b1ff" },
+      keys: ["median"],
+      colors: { median: "#33b1ff" },
       stacked: false,
-      yLabel: "headcount",
+      yLabel: "median people",
     };
   }
 
-  const rows = buckets.map((b) => {
-    let n = 0;
-    for (const c of b.companies) if (c.top_company === true) n++;
-    const pct = b.total > 0 ? (n / b.total) * 100 : 0;
-    return { short: b.short, batch: b.batch, pct };
-  });
+  if (metric === "country_diversity") {
+    const rows = buckets.map((b) => {
+      const countries = new Set<string>();
+      for (const c of b.companies) {
+        for (const r of c.regions) {
+          if (INTL_META.has(r) || INTL_US.has(r)) continue;
+          countries.add(r);
+        }
+      }
+      return { short: b.short, batch: b.batch, countries: countries.size };
+    });
+    return {
+      rows,
+      keys: ["countries"],
+      colors: { countries: "#5cc8a8" },
+      stacked: false,
+      yLabel: "distinct countries",
+    };
+  }
+
+  if (metric === "intl") {
+    const rows = buckets.map((b) => {
+      let us = 0;
+      let nonus = 0;
+      for (const c of b.companies) {
+        const cls = classifyIntl(c);
+        if (cls === "us") us++;
+        else if (cls === "nonus") nonus++;
+      }
+      return { short: b.short, batch: b.batch, US: us, "Non-US": nonus };
+    });
+    return {
+      rows,
+      keys: ["US", "Non-US"],
+      colors: { US: "#33b1ff", "Non-US": "#e87aa8" },
+      stacked: true,
+      yLabel: "companies",
+    };
+  }
+
+  const rows = buckets
+    .filter((b) => isMatureBatch(b.batch))
+    .map((b) => {
+      let n = 0;
+      for (const c of b.companies) if (c.top_company === true) n++;
+      const pct = b.total > 0 ? (n / b.total) * 100 : 0;
+      return { short: b.short, batch: b.batch, pct };
+    });
   return {
     rows,
     keys: ["pct"],
@@ -271,9 +366,9 @@ function buildFates(buckets: BatchBucket[]): FateRow[] {
 export function Timeline() {
   const all = useCompanies();
   const filters = useUi((s) => s.filters);
+  const metric = useUi((s) => s.timelineMetric);
+  const setMetric = useUi((s) => s.setTimelineMetric);
   const mounted = useMounted();
-
-  const [metric, setMetric] = useState<Metric>("status");
 
   // Time-series view: strip the batches filter so the selected
   // batch shows as a ReferenceLine instead of collapsing the chart.
@@ -337,7 +432,7 @@ export function Timeline() {
   const activeMetric = METRIC_OPTIONS.find((o) => o.id === metric)!;
 
   return (
-    <div className="flex h-full flex-col" style={{ paddingBottom: "60px" }}>
+    <div className="flex h-full flex-col">
       <div className="border-b border-border bg-card/40 px-6 py-3">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <div>
@@ -394,24 +489,26 @@ export function Timeline() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
-              {METRIC_OPTIONS.map((opt) => {
-                const active = metric === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setMetric(opt.id)}
-                    className={cn(
-                      "rounded border px-2 py-0.5 transition-colors",
-                      active
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+              {OUTCOME_METRICS.map((opt) => (
+                <MetricTab
+                  key={opt.id}
+                  opt={opt}
+                  active={metric === opt.id}
+                  onSelect={setMetric}
+                />
+              ))}
+              <span
+                aria-hidden
+                className="mx-0.5 h-3.5 w-px bg-border"
+              />
+              {COMPOSITION_METRICS.map((opt) => (
+                <MetricTab
+                  key={opt.id}
+                  opt={opt}
+                  active={metric === opt.id}
+                  onSelect={setMetric}
+                />
+              ))}
             </div>
           </div>
           <div className="min-h-0 flex-1">
@@ -625,6 +722,31 @@ function Stat({ label, value }: { label: string; value: number }) {
       <span className="text-foreground">{value.toLocaleString()}</span>
       <span className="text-muted-foreground">{label}</span>
     </span>
+  );
+}
+
+function MetricTab({
+  opt,
+  active,
+  onSelect,
+}: {
+  opt: MetricOption;
+  active: boolean;
+  onSelect: (m: Metric) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(opt.id)}
+      className={cn(
+        "rounded border px-2 py-0.5 transition-colors",
+        active
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+      )}
+    >
+      {opt.label}
+    </button>
   );
 }
 
