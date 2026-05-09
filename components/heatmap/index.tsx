@@ -10,10 +10,11 @@ import type { Company } from "@/lib/types";
 
 const ROW_LIMIT = 20;
 
-type RowAxis = "industry" | "tag" | "region";
+type RowAxis = "industry" | "subindustry" | "tag" | "region";
 
 const ROW_OPTIONS: { id: RowAxis; label: string }[] = [
   { id: "industry", label: "industry" },
+  { id: "subindustry", label: "subindustry" },
   { id: "tag", label: "tag" },
   { id: "region", label: "region" },
 ];
@@ -22,6 +23,8 @@ function rowKeysFor(c: Company, axis: RowAxis): string[] {
   switch (axis) {
     case "industry":
       return c.industry ? [c.industry] : [];
+    case "subindustry":
+      return c.subindustry ? [c.subindustry] : [];
     case "tag":
       return c.tags;
     case "region":
@@ -136,6 +139,14 @@ export function Heatmap() {
           : null;
 
   const handleCellClick = (rowKey: string, batch: string) => {
+    // No filter key exists for subindustry, so subindustry cells only
+    // toggle the batch filter.
+    if (axis === "subindustry") {
+      const sameBatch =
+        filters.batches.length === 1 && filters.batches[0] === batch;
+      setFilters({ batches: sameBatch ? [] : [batch] });
+      return;
+    }
     const filterKey =
       axis === "industry"
         ? "industries"
@@ -181,10 +192,7 @@ export function Heatmap() {
         <RampLegend max={data.max} />
       </div>
 
-      <div
-        className="flex-1 overflow-hidden p-4"
-        style={{ paddingBottom: "60px" }}
-      >
+      <div className="flex-1 overflow-hidden p-4">
         {data.rowLabels.length === 0 || data.cols.length === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             Not enough data · refine filter
