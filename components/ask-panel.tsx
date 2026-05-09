@@ -484,15 +484,14 @@ function applyEvent(
           events.push({ kind: "reasoning", text: evt.text });
         }
       } else if (evt.type === "tool_call" && typeof evt.id === "string") {
-        const expression = evt.args?.expression ?? "";
-        const error = evt.args?.error;
-        events.push({
-          kind: "tool",
-          id: evt.id,
-          expression,
-          error,
-          pending: !error,
-        });
+        if (!evt.args?.error) {
+          events.push({
+            kind: "tool",
+            id: evt.id,
+            expression: evt.args?.expression ?? "",
+            pending: true,
+          });
+        }
       } else if (evt.type === "tool_result" && typeof evt.id === "string") {
         const targetId = evt.id;
         const idx = events.findIndex(
@@ -500,13 +499,16 @@ function applyEvent(
             e.kind === "tool" && e.id === targetId,
         );
         if (idx >= 0) {
-          const tool = events[idx] as Extract<TurnEvent, { kind: "tool" }>;
-          events[idx] = {
-            ...tool,
-            value: evt.value,
-            error: evt.error,
-            pending: false,
-          };
+          if (evt.error) {
+            events.splice(idx, 1);
+          } else {
+            const tool = events[idx] as Extract<TurnEvent, { kind: "tool" }>;
+            events[idx] = {
+              ...tool,
+              value: evt.value,
+              pending: false,
+            };
+          }
         }
       } else if (evt.type === "final" && typeof evt.answer === "string") {
         events.push({

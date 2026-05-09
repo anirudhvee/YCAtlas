@@ -13,7 +13,6 @@ export type TurnEvent =
       id: string;
       expression: string;
       value?: unknown;
-      error?: string;
       pending: boolean;
     }
   | { kind: "final"; answer: string; truncated?: boolean }
@@ -132,12 +131,7 @@ function ToolPill({
   event: Extract<TurnEvent, { kind: "tool" }>;
 }) {
   const [open, setOpen] = useState(false);
-
-  const label = event.error
-    ? "errored"
-    : event.pending
-      ? "running"
-      : "ran query";
+  const label = event.pending ? "running" : "ran query";
 
   return (
     <div className="ask-fade-up flex flex-col gap-1.5">
@@ -148,8 +142,6 @@ function ToolPill({
       >
         {event.pending ? (
           <Loader2 className="ask-spinner size-3 text-primary" strokeWidth={2.5} />
-        ) : event.error ? (
-          <span className="size-1.5 rounded-full bg-destructive" />
         ) : (
           <span className="size-1.5 rounded-full bg-primary" />
         )}
@@ -165,22 +157,15 @@ function ToolPill({
           <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-foreground/90">
             <code>{event.expression || "—"}</code>
           </pre>
-          {!event.pending && (
-            <ResultDetail value={event.value} error={event.error} />
-          )}
+          {!event.pending && <ResultDetail value={event.value} />}
         </div>
       )}
     </div>
   );
 }
 
-function ResultDetail({ value, error }: { value: unknown; error?: string }) {
+function ResultDetail({ value }: { value: unknown }) {
   const [expanded, setExpanded] = useState(false);
-  if (error) {
-    return (
-      <p className="font-mono text-[11px] text-destructive">{error}</p>
-    );
-  }
   const text =
     typeof value === "string" ? value : safeStringify(value);
   const isLong = text.length > 320;
