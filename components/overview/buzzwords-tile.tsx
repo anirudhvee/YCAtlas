@@ -35,6 +35,27 @@ export function BuzzwordsTile({ companies, selectedBatch }: Props) {
 
   const markerShort = selectedBatch ? batchToShort(selectedBatch) : null;
 
+  if (companies.length === 0) {
+    return (
+      <Tile
+        header="Buzzwords"
+        footer="8 phrases tracked →"
+        onClick={() => setView("buzzwords")}
+      >
+        <div className="grid h-full grid-cols-2 gap-3">
+          {PREVIEW_PHRASES.map((phrase) => (
+            <div key={phrase} className="flex min-h-0 flex-col gap-1">
+              <div className="min-h-0 flex-1 border border-dashed border-border" />
+              <div className="font-mono text-[10px] text-muted-foreground">
+                {phrase}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Tile>
+    );
+  }
+
   return (
     <Tile
       header="Buzzwords"
