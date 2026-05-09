@@ -63,24 +63,13 @@ export function Boards() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
 
-    // yc-oss lists the current name in `former_names` for ~350 cos;
-    // skip the self-reference or the row reads "Wave → Wave".
-    const pivots = all
-      .filter((c) => {
-        const real = c.former_names.find(
-          (n) => n.trim().toLowerCase() !== c.name.trim().toLowerCase(),
-        );
-        return Boolean(real);
-      })
-      .map((c) => ({
-        ...c,
-        firstFormerName:
-          c.former_names.find(
-            (n) => n.trim().toLowerCase() !== c.name.trim().toLowerCase(),
-          ) ?? c.former_names[0],
-      }))
-      .sort((a, b) => (b.team_size ?? 0) - (a.team_size ?? 0))
-      .slice(0, 8);
+    const publicCompanies = all
+      .filter(
+        (c) =>
+          c.status === "Public" &&
+          typeof c.team_size === "number" &&
+          c.team_size > 0,
+      );
 
     const aggs = aggregatesAboveMinSize(
       aggregatesExcludingUnspecified(aggregateByBatch(all)),
@@ -108,8 +97,6 @@ export function Boards() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 12);
 
-    // 12 oldest still-active batches, then top 8 by survival rate
-    // so rank order matches bar length.
     const longestRunning = aggregatesAboveMinSize(
       aggregatesExcludingUnspecified(aggregateByBatch(all)),
     )
@@ -123,7 +110,7 @@ export function Boards() {
       topBatches,
       largest,
       regions,
-      pivots,
+      publicCompanies,
       tags,
       latest,
       longestRunning,
@@ -134,7 +121,7 @@ export function Boards() {
   }, [all, mounted, filters]);
 
   return (
-    <div className="h-full overflow-y-auto" style={{ paddingBottom: "60px" }}>
+    <div className="h-full overflow-y-auto">
       <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 lg:grid-cols-3">
         <TopBatchesBoard
           rows={data.topBatches}
@@ -150,8 +137,8 @@ export function Boards() {
           activeRegions={data.activeRegions}
           onToggle={(r) => toggleArrayFilter("regions", r)}
         />
-        <PivotsBoard
-          rows={data.pivots}
+        <IpoWallBoard
+          companies={data.publicCompanies}
           onSelect={(c) => setSelectedCompany(c)}
         />
         <TagsBoard
@@ -269,8 +256,8 @@ function TopBatchesBoard({
   const max = rows[0]?.pctTopCompany ?? 1;
   return (
     <BoardCard
-      title="Top batches by % top companies"
-      caption={`top ${rows.length}`}
+      title="Most decorated batches · % top YC"
+      caption="batches ≥5y old"
     >
       <div className="flex flex-col gap-px">
         {rows.length === 0 ? (
@@ -394,36 +381,61 @@ function RegionsBoard({
   );
 }
 
-type PivotRow = Company & { firstFormerName: string };
-
-function PivotsBoard({
-  rows,
+function IpoWallBoard({
+  companies,
   onSelect,
 }: {
-  rows: PivotRow[];
+  companies: Company[];
   onSelect: (c: Company) => void;
 }) {
+  const rows = useMemo(
+    () =>
+      [...companies]
+        .sort((a, b) => (b.team_size ?? 0) - (a.team_size ?? 0))
+        .slice(0, 8),
+    [companies],
+  );
+
+  const totalPublic = companies.length;
+  const max = rows[0]?.team_size ?? 1;
+
   return (
-    <BoardCard title="Notable pivots" caption="renamed">
+    <BoardCard
+      title="YC IPO wall · public companies"
+      caption={`${totalPublic} all-time · by team size`}
+    >
       <div className="flex flex-col gap-1">
         {rows.length === 0 ? (
-          <Empty msg="No pivots match" />
+          <Empty msg="No companies match" />
         ) : (
-          rows.map((c, i) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => onSelect(c)}
-              className="group/row grid w-full grid-cols-[18px_1fr_12px_1fr_auto] items-center gap-2 rounded-sm py-1.5 pl-1 pr-2 text-left font-mono text-[10.5px] tabular-nums transition-colors hover:bg-muted/50"
-            >
-              <span className="text-right text-muted-foreground/60">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="min-w-0 truncate text-muted-foreground">
-                {c.firstFormerName}
-              </span>
-              <span className="text-center text-muted-foreground/40">→</span>
-              <span className="flex min-w-0 items-center gap-1.5">
+          rows.map((c, i) => {
+            const team = c.team_size ?? 0;
+            const t = max > 0 ? team / max : 0;
+            const dotPx = Math.min(16, 6 + Math.sqrt(Math.max(0, t)) * 10);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelect(c)}
+                className="group/row flex w-full items-center gap-2 rounded-sm py-1 pl-1 pr-2 text-left font-mono text-[11px] tabular-nums transition-colors hover:bg-muted/50"
+              >
+                <span className="w-4 text-right text-muted-foreground/60">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span
+                  aria-hidden
+                  className="grid w-5 shrink-0 place-items-center"
+                >
+                  <span
+                    className="block rounded-full transition-transform group-hover/row:scale-110"
+                    style={{
+                      width: dotPx,
+                      height: dotPx,
+                      backgroundColor: STATUS_COLORS[c.status as CompanyStatus],
+                      boxShadow: `0 0 0 1px ${STATUS_COLORS[c.status as CompanyStatus]}40`,
+                    }}
+                  />
+                </span>
                 {c.small_logo_thumb_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -432,14 +444,21 @@ function PivotsBoard({
                     loading="lazy"
                     className="size-4 shrink-0 rounded-sm object-contain"
                   />
-                ) : null}
-                <span className="truncate text-foreground">{c.name}</span>
-              </span>
-              <span className="text-muted-foreground">
-                {batchToShort(c.batch)}
-              </span>
-            </button>
-          ))
+                ) : (
+                  <span className="size-4 shrink-0 rounded-sm bg-muted/40" />
+                )}
+                <span className="min-w-0 flex-1 truncate text-foreground">
+                  {c.name}
+                </span>
+                <span className="text-muted-foreground">
+                  {batchToShort(c.batch)}
+                </span>
+                <span className="w-10 text-right text-foreground">
+                  {team.toLocaleString()}
+                </span>
+              </button>
+            );
+          })
         )}
       </div>
     </BoardCard>
