@@ -152,10 +152,7 @@ export function Wall() {
         </span>
       </div>
 
-      <div
-        className="flex-1 overflow-y-auto px-4 py-4"
-        style={{ paddingBottom: "60px" }}
-      >
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {total === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
