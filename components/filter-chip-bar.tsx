@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import { useCompanies } from "@/components/companies-provider";
 import {
   defaultFilters,
@@ -88,6 +89,13 @@ export function FilterChipBar() {
       onRemove: () => setFilters({ hasFormerNames: null }),
     });
   }
+  if (effective.isHiring !== null) {
+    chips.push({
+      key: "h",
+      label: `isHiring: ${effective.isHiring}`,
+      onRemove: () => setFilters({ isHiring: null }),
+    });
+  }
   if (effective.teamSizeMin !== null) {
     chips.push({
       key: "tmin",
@@ -114,7 +122,7 @@ export function FilterChipBar() {
   const filteredCount = mounted ? filtered.length : 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card/40 px-4 py-2 font-mono text-[11px]">
+    <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1.5 border-b border-border bg-card/95 px-4 py-2 font-mono text-[11px] backdrop-blur">
       {chips.map((c) => (
         <FilterChip key={c.key} label={c.label} onRemove={c.onRemove} />
       ))}
@@ -125,9 +133,13 @@ export function FilterChipBar() {
         <button
           type="button"
           onClick={clearFilters}
-          className="text-primary transition-colors hover:underline"
+          aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
+          title={`Reset all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
+          className="inline-flex items-center gap-1 rounded border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-destructive transition-colors hover:border-destructive/60 hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
         >
-          clear all
+          <X className="size-3" strokeWidth={2.5} aria-hidden />
+          <span>clear filters</span>
+          <span className="tabular-nums opacity-70">({chips.length})</span>
         </button>
       </div>
     </div>

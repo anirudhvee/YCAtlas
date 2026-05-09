@@ -10,6 +10,7 @@ export interface UrlDecoded {
   stage?: string[];
   top_company?: boolean;
   hasFormerNames?: boolean;
+  isHiring?: boolean;
   teamSizeMin?: number;
   teamSizeMax?: number;
   search?: string;
@@ -26,6 +27,7 @@ export interface UrlInput {
   stage: string[];
   top_company: boolean | null;
   hasFormerNames: boolean | null;
+  isHiring: boolean | null;
   teamSizeMin: number | null;
   teamSizeMax: number | null;
   search: string | null;
@@ -76,6 +78,9 @@ export function encodeHash(state: UrlInput): string {
   if (state.hasFormerNames !== null) {
     parts.push(`fn=${state.hasFormerNames ? "1" : "0"}`);
   }
+  if (state.isHiring !== null) {
+    parts.push(`h=${state.isHiring ? "1" : "0"}`);
+  }
   if (state.teamSizeMin !== null) parts.push(`tmin=${state.teamSizeMin}`);
   if (state.teamSizeMax !== null) parts.push(`tmax=${state.teamSizeMax}`);
   if (state.search) parts.push(`q=${enc(state.search)}`);
@@ -117,6 +122,10 @@ export function decodeHash(hash: string): UrlDecoded {
   const fn = params.get("fn");
   if (fn === "1") out.hasFormerNames = true;
   else if (fn === "0") out.hasFormerNames = false;
+
+  const h = params.get("h");
+  if (h === "1") out.isHiring = true;
+  else if (h === "0") out.isHiring = false;
 
   const tmin = params.get("tmin");
   if (tmin && /^\d+$/.test(tmin)) out.teamSizeMin = Number(tmin);

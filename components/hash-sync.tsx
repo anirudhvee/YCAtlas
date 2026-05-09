@@ -22,6 +22,7 @@ function decodeAndApply() {
     stage: decoded.stage ?? [],
     top_company: decoded.top_company ?? null,
     hasFormerNames: decoded.hasFormerNames ?? null,
+    isHiring: decoded.isHiring ?? null,
     teamSizeMin: decoded.teamSizeMin ?? null,
     teamSizeMax: decoded.teamSizeMax ?? null,
     search: decoded.search ?? null,

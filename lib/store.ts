@@ -15,6 +15,19 @@ export const VIEW_IDS = [
 
 export type ViewId = (typeof VIEW_IDS)[number];
 
+export const TIMELINE_METRICS = [
+  "status",
+  "stage",
+  "top_company",
+  "industry",
+  "region",
+  "intl",
+  "team_size",
+  "country_diversity",
+] as const;
+
+export type TimelineMetric = (typeof TIMELINE_METRICS)[number];
+
 export interface FilterState {
   status: string[];
   batches: string[];
@@ -24,6 +37,7 @@ export interface FilterState {
   stage: string[];
   top_company: boolean | null;
   hasFormerNames: boolean | null;
+  isHiring: boolean | null;
   teamSizeMin: number | null;
   teamSizeMax: number | null;
   search: string | null;
@@ -38,6 +52,7 @@ export const defaultFilters: FilterState = {
   stage: [],
   top_company: null,
   hasFormerNames: null,
+  isHiring: null,
   teamSizeMin: null,
   teamSizeMax: null,
   search: null,
@@ -58,6 +73,8 @@ interface UiStore {
   phrases: string[];
   selectedCompany: Company | null;
   askOpen: boolean;
+  timelineMetric: TimelineMetric;
+  setTimelineMetric: (m: TimelineMetric) => void;
   setView: (view: ViewId) => void;
   setFilters: (patch: Partial<FilterState>) => void;
   toggleArrayFilter: (key: ArrayFilterKey, value: string) => void;
@@ -98,6 +115,7 @@ function getInitialState(): {
     stage: decoded.stage ?? [],
     top_company: decoded.top_company ?? null,
     hasFormerNames: decoded.hasFormerNames ?? null,
+    isHiring: decoded.isHiring ?? null,
     teamSizeMin: decoded.teamSizeMin ?? null,
     teamSizeMax: decoded.teamSizeMax ?? null,
     search: decoded.search ?? null,
@@ -110,6 +128,8 @@ export const useUi = create<UiStore>((set) => ({
   filterRevision: 0,
   selectedCompany: null,
   askOpen: false,
+  timelineMetric: "status",
+  setTimelineMetric: (m) => set({ timelineMetric: m }),
   setAskOpen: (open) => set({ askOpen: open }),
   toggleAsk: () => set((state) => ({ askOpen: !state.askOpen })),
   setView: (view) => set({ view }),
@@ -164,6 +184,7 @@ export function isFilteringActive(filters: FilterState): boolean {
     filters.stage.length > 0 ||
     filters.top_company !== null ||
     filters.hasFormerNames !== null ||
+    filters.isHiring !== null ||
     filters.teamSizeMin !== null ||
     filters.teamSizeMax !== null ||
     filters.search !== null
@@ -196,6 +217,9 @@ export function filterCompanies(
     if (filters.hasFormerNames !== null) {
       const has = c.former_names.length > 0;
       if (has !== filters.hasFormerNames) return false;
+    }
+    if (filters.isHiring !== null) {
+      if ((c.isHiring ?? false) !== filters.isHiring) return false;
     }
     if (filters.teamSizeMin !== null) {
       if ((c.team_size ?? 0) < filters.teamSizeMin) return false;
