@@ -12,9 +12,6 @@ export const STATUS_KEYS: CompanyStatus[] = [
 // noise. Applied across cohort strip, growth, and composition.
 export const MIN_BATCH_SIZE = 5;
 
-// Hues anchored to YC orange (~25°): Active is near-complementary cyan,
-// Acquired and Public sit on orange's triadic corners. Tailwind 500–600
-// for dual-theme legibility.
 export const STATUS_COLORS: Record<CompanyStatus, string> = {
   Active: "#0891b2",
   Inactive: "#64748b",
@@ -97,13 +94,24 @@ export function findLatestBatch(
   return best?.batch ?? null;
 }
 
+// `top_company` is awarded post-hoc, so recent batches are 0% by
+// default. Anything ranking by this field needs a maturity gate.
+export const MATURITY_YEARS = 5;
+
+export function isMatureBatch(batch: string, now: Date = new Date()): boolean {
+  if (batch === "Unspecified") return false;
+  const yearStr = batch.split(" ")[1];
+  if (!yearStr || !/^\d{4}$/.test(yearStr)) return false;
+  return Number(yearStr) <= now.getFullYear() - MATURITY_YEARS;
+}
+
 export function topBatchesByPctTopCompany(
   companies: Company[],
   n: number,
   minBatchSize = MIN_BATCH_SIZE,
 ): BatchAggregate[] {
   return aggregatesExcludingUnspecified(aggregateByBatch(companies))
-    .filter((a) => a.total >= minBatchSize)
+    .filter((a) => a.total >= minBatchSize && isMatureBatch(a.batch))
     .sort((x, y) => y.pctTopCompany - x.pctTopCompany)
     .slice(0, n);
 }
@@ -237,8 +245,6 @@ export const COMPOSITION_TAG_GROUPS: TagGroup[] = [
   { label: "Developer Tools", match: ["Developer Tools", "DevTools"] },
 ];
 
-// Carbon dark-theme palette with the orange-red wedge removed so the
-// YC primary stays the brightest hue on screen.
 export const COMPOSITION_COLORS: Record<string, string> = {
   AI: "#8a8df0",
   SaaS: "#33b1ff",
@@ -307,6 +313,154 @@ export function compositionSeries(
       batchToSortKey(x.batch as string) - batchToSortKey(y.batch as string),
   );
   return rows;
+}
+
+const DIALECT_STOPWORDS = new Set([
+  "the","and","for","with","that","this","you","your","our","their","they",
+  "are","was","were","has","have","had","not","but","from","into","over",
+  "any","all","can","its","one","two","also","than","then","there","here",
+  "company","companies","platform","service","services","based","help",
+  "helps","using","used","make","makes","making","more","most","new",
+  "people","every","just","like","work","works","working","time","times",
+  "year","years","day","days","first","other","each","when","where","what",
+  "how","who","while","because","without","through","about","across","via",
+  "users","user","build","built","building","need","needs","want","wants",
+]);
+
+function dialectTokens(text: string): string[] {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  const out: string[] = [];
+  const re = /[a-z][a-z0-9-]+/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(lower))) {
+    const w = m[0];
+    if (w.length < 3) continue;
+    if (DIALECT_STOPWORDS.has(w)) continue;
+    out.push(w);
+  }
+  return out;
+}
+
+export interface DialectWord {
+  word: string;
+  latestCount: number;
+  latestPct: number;
+  priorPct: number;
+  ratio: number;
+}
+
+export interface DialectResult {
+  batch: string | null;
+  total: number;
+  words: DialectWord[];
+}
+
+// Words disproportionately common in the latest batch's pitches vs
+// all prior. Min support: 4% of cohort or 8 companies.
+export function latestCohortDialect(
+  companies: Company[],
+  n: number = 6,
+  minBatchSize: number = 20,
+): DialectResult {
+  const counts = new Map<string, number>();
+  for (const c of companies) {
+    if (c.batch === "Unspecified") continue;
+    counts.set(c.batch, (counts.get(c.batch) ?? 0) + 1);
+  }
+  const eligible = [...counts.entries()]
+    .filter(([, total]) => total >= minBatchSize)
+    .sort((a, b) => batchToSortKey(b[0]) - batchToSortKey(a[0]));
+  if (eligible.length === 0) return { batch: null, total: 0, words: [] };
+
+  const latestBatch = eligible[0][0];
+  const priorBatches = new Set(eligible.slice(1).map(([b]) => b));
+
+  const latestSet: Company[] = [];
+  const priorSet: Company[] = [];
+  for (const c of companies) {
+    if (c.batch === latestBatch) latestSet.push(c);
+    else if (priorBatches.has(c.batch)) priorSet.push(c);
+  }
+
+  const docFreq = (set: Company[]): Map<string, number> => {
+    const out = new Map<string, number>();
+    for (const c of set) {
+      const seen = new Set<string>();
+      const text = `${c.one_liner ?? ""} ${c.long_description ?? ""}`;
+      for (const w of dialectTokens(text)) seen.add(w);
+      for (const w of seen) out.set(w, (out.get(w) ?? 0) + 1);
+    }
+    return out;
+  };
+
+  const dL = docFreq(latestSet);
+  const dP = docFreq(priorSet);
+  const nL = latestSet.length;
+  const nP = priorSet.length;
+  const minSupport = Math.max(8, Math.floor(nL * 0.04));
+
+  const scored: DialectWord[] = [];
+  for (const [word, cl] of dL) {
+    if (cl < minSupport) continue;
+    const priorCount = dP.get(word) ?? 0;
+    const latestPct = (cl / nL) * 100;
+    // +1/+1 smoothing avoids infinite ratios for zero-prior words.
+    const smoothPriorPct = (priorCount + 1) / (nP + 1);
+    const ratio = cl / nL / smoothPriorPct;
+    const rawPriorPct = nP > 0 ? (priorCount / nP) * 100 : 0;
+    scored.push({ word, latestCount: cl, latestPct, priorPct: rawPriorPct, ratio });
+  }
+  scored.sort((a, b) => b.ratio - a.ratio);
+  return { batch: latestBatch, total: nL, words: scored.slice(0, n) };
+}
+
+const AI_RE = /\b(ai|agents?)\b/i;
+
+export interface AiShareRow {
+  short: string;
+  batch: string;
+  pct: number;
+  total: number;
+  matches: number;
+}
+
+export function aiShareSeries(
+  companies: Company[],
+  minSize = MIN_BATCH_SIZE,
+): AiShareRow[] {
+  const buckets = new Map<string, { total: number; matches: number }>();
+  for (const c of companies) {
+    if (c.batch === "Unspecified") continue;
+    const haystack = `${c.name} ${c.one_liner} ${c.long_description ?? ""}`;
+    let b = buckets.get(c.batch);
+    if (!b) {
+      b = { total: 0, matches: 0 };
+      buckets.set(c.batch, b);
+    }
+    b.total++;
+    if (AI_RE.test(haystack)) b.matches++;
+  }
+  return [...buckets.entries()]
+    .filter(([, { total }]) => total >= minSize)
+    .sort((a, b) => batchToSortKey(a[0]) - batchToSortKey(b[0]))
+    .map(([batch, { total, matches }]) => ({
+      batch,
+      short: batchToShort(batch),
+      total,
+      matches,
+      pct: total ? (matches / total) * 100 : 0,
+    }));
+}
+
+export function findAiInflection(rows: AiShareRow[]): AiShareRow | null {
+  if (rows.length < 2) return null;
+  let best: { row: AiShareRow; delta: number } | null = null;
+  for (let i = 1; i < rows.length; i++) {
+    const delta = rows[i].pct - rows[i - 1].pct;
+    if (!best || delta > best.delta) best = { row: rows[i], delta };
+  }
+  return best?.row ?? null;
 }
 
 function escapeRegex(s: string): string {

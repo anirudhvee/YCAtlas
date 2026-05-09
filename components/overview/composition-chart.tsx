@@ -12,9 +12,9 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import {
-  compositionSeries,
   COMPOSITION_COLORS,
   COMPOSITION_TAG_GROUPS,
+  compositionSeries,
 } from "@/lib/overview-data";
 import type { Company } from "@/lib/types";
 import { batchToShort } from "@/lib/utils";

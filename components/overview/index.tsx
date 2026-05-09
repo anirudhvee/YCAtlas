@@ -6,8 +6,8 @@ import { useMounted } from "@/lib/use-mounted";
 import { CohortStrip } from "./cohort-strip";
 import { GrowthChart } from "./growth-chart";
 import { CompositionChart } from "./composition-chart";
-import { GeographyTile } from "./geography-tile";
-import { TopBatchesTile } from "./top-batches-tile";
+import { DialectTile } from "./dialect-tile";
+import { AiTile } from "./ai-tile";
 import { RecentBatchLogosTile } from "./recent-batch-logos-tile";
 import { BuzzwordsTile } from "./buzzwords-tile";
 
@@ -24,10 +24,7 @@ export function Overview() {
     mounted && filters.batches.length === 1 ? filters.batches[0] : null;
 
   return (
-    <div
-      className="h-full overflow-y-auto"
-      style={{ paddingBottom: "60px" }}
-    >
+    <div className="h-full overflow-y-auto">
       <div className="flex flex-col gap-6 p-6">
         <CohortStrip />
 
@@ -37,8 +34,8 @@ export function Overview() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <GeographyTile companies={listGridCompanies} />
-          <TopBatchesTile companies={all} selectedBatch={selectedBatch} />
+          <DialectTile companies={all} />
+          <AiTile companies={all} selectedBatch={selectedBatch} />
           <RecentBatchLogosTile companies={listGridCompanies} />
           <BuzzwordsTile companies={all} selectedBatch={selectedBatch} />
         </div>

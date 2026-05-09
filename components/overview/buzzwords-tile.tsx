@@ -6,7 +6,9 @@ import {
   AreaChart,
   ReferenceLine,
   ResponsiveContainer,
+  Tooltip,
   YAxis,
+  type TooltipContentProps,
 } from "recharts";
 import { useUi } from "@/lib/store";
 import { phraseSeries } from "@/lib/overview-data";
@@ -92,6 +94,12 @@ export function BuzzwordsTile({ companies, selectedBatch }: Props) {
                     </linearGradient>
                   </defs>
                   <YAxis hide domain={[0, "dataMax"]} />
+                  <Tooltip
+                    cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                    content={(props) => (
+                      <PhrasePctTooltip {...props} phrase={phrase} />
+                    )}
+                  />
                   {markerShort && (
                     <ReferenceLine
                       x={markerShort}
@@ -119,5 +127,24 @@ export function BuzzwordsTile({ companies, selectedBatch }: Props) {
         ))}
       </div>
     </Tile>
+  );
+}
+
+function PhrasePctTooltip({
+  active,
+  payload,
+  label,
+  phrase,
+}: TooltipContentProps & { phrase: string }) {
+  if (!active || !payload || !payload.length) return null;
+  const row = payload[0]?.payload as { pct?: number } | undefined;
+  if (!row) return null;
+  return (
+    <div className="rounded border border-border bg-card px-2 py-1.5 font-mono text-[10px] leading-tight tabular-nums">
+      <div className="text-foreground">
+        {phrase} <span className="text-muted-foreground">·</span> {label}
+      </div>
+      <div className="text-foreground">{(row.pct ?? 0).toFixed(1)}%</div>
+    </div>
   );
 }
