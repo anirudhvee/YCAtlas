@@ -7,8 +7,10 @@ import {
   AreaChart,
   ReferenceLine,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
+  type TooltipContentProps,
 } from "recharts";
 import { useCompanies } from "@/components/companies-provider";
 import { filterCompanies, useUi } from "@/lib/store";
@@ -17,19 +19,18 @@ import { phraseSeries } from "@/lib/overview-data";
 import { batchToShort, cn } from "@/lib/utils";
 import type { Company } from "@/lib/types";
 
-// 11 defaults + the add-phrase cell complete a 12-up grid.
 const DEFAULT_PHRASES = [
   "AI",
-  "agent",
+  "agents",
   "agentic",
-  "Cursor for",
   "Claude",
+  "copilot",
   "autonomous",
+  "platform",
+  "community",
   "real-time",
-  "marketplace",
-  "social network",
-  "on-demand",
-  "crypto",
+  "cloud",
+  "Cursor for",
 ];
 
 export function Buzzwords() {
@@ -68,10 +69,7 @@ export function Buzzwords() {
   }, [phrases, mounted]);
 
   return (
-    <div
-      className="h-full overflow-y-auto p-4"
-      style={{ paddingBottom: "120px" }}
-    >
+    <div className="h-full overflow-y-auto p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {list.map(({ phrase, removable }) => (
           <PhraseChart
@@ -184,6 +182,12 @@ function PhraseChart({
                 interval={tickInterval}
               />
               <YAxis hide domain={[0, yMax]} />
+              <Tooltip
+                cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+                content={(props) => (
+                  <PhraseChartTooltip {...props} phrase={phrase} />
+                )}
+              />
               <ReferenceLine
                 y={5}
                 stroke="var(--muted-foreground)"
@@ -300,4 +304,23 @@ function AddPhraseCell({
 
 function slug(s: string): string {
   return s.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
+}
+
+function PhraseChartTooltip({
+  active,
+  payload,
+  label,
+  phrase,
+}: TooltipContentProps & { phrase: string }) {
+  if (!active || !payload || !payload.length) return null;
+  const row = payload[0]?.payload as { pct?: number } | undefined;
+  if (!row) return null;
+  return (
+    <div className="rounded border border-border bg-card px-2 py-1.5 font-mono text-[10px] leading-tight tabular-nums">
+      <div className="text-foreground">
+        {phrase} <span className="text-muted-foreground">·</span> {label}
+      </div>
+      <div className="text-foreground">{(row.pct ?? 0).toFixed(1)}%</div>
+    </div>
+  );
 }
