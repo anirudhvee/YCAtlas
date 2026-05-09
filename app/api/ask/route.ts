@@ -18,8 +18,8 @@ import { runInSandbox } from "@/lib/ask-sandbox";
 const REQUEST_TIMEOUT_MS = 45_000;
 const RATE_LIMIT_PER_MINUTE = 12;
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const MAX_ITERATIONS = 5;
-const MAX_HISTORY_TURNS = 10;
+const MAX_ITERATIONS = 4;
+const MAX_HISTORY_TURNS = 5;
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -356,7 +356,7 @@ export async function POST(req: Request) {
         for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
           const completion = await client.chat.completions.create(
             {
-              model: "grok-4.3",
+              model: "grok-4-1-fast-reasoning",
               messages,
               tools: TOOLS,
               tool_choice: iter === 0 ? "required" : "auto",

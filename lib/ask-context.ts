@@ -18,7 +18,7 @@ const VIEW_DESCRIPTIONS: Record<(typeof VIEW_IDS)[number], string> = {
     "12-up grid of small phrase-frequency area charts over time.",
 };
 
-const TOP_TAG_COUNT = 60;
+const TOP_TAG_COUNT = 30;
 
 function uniqueValues(values: string[]): string[] {
   const set = new Set<string>();
@@ -166,19 +166,7 @@ All array fields default to []; scalars default to null.
 Word → field heuristics (memorize):
 - "dead" / "shut down" / "failed" / "defunct" / "didn't make it" → status: ["Inactive"]
 - "currently active" / "with active status" / "still independent" → status: ["Active"] (strict)
-- "still active" / "still around" / "still operating" / "still alive" → status: ["Active", "Acquired", "Public"] (inclusive — anything not Inactive). An acquired company often still operates under its new parent (Twitch under Amazon, Cruise under GM); a public company is still a running business. Default to the inclusive read for these phrasings.
-
-  When answering, query for the **full status breakdown** so you can write the template:
-  **"356 of 399 W22 companies (89.2%) are still going — 322 independent, 27 acquired, 7 public. The other 43 shut down."**
-  One sentence for the headline, em-dash breakdown of the surviving categories, brief failure note. Avoid "have not shut down" / "are still active, meaning they have not shut down" — use "still going" / "still around". Avoid "this includes…" tacked-on second sentences.
-
-  Recommended query shape:
-  \`\`\`
-  const w22 = companies.filter(c => batchToShort(c.batch) === "W22");
-  const by = { Active: 0, Inactive: 0, Acquired: 0, Public: 0 };
-  for (const c of w22) by[c.status]++;
-  return { total: w22.length, ...by };
-  \`\`\`
+- "still active" / "still around" / "still operating" / "still alive" → status: ["Active", "Acquired", "Public"] (inclusive — anything not Inactive). For these, query the full status breakdown and answer in the form: *"356 of 399 W22 (89.2%) are still going — 322 independent, 27 acquired, 7 public. The other 43 shut down."* Use "still going" / "still around"; avoid "have not shut down".
 - "biggest" / "largest" / "top" → top_company: true (YC's internal "highly successful" flag)
 - "unicorn" → no exact field. Don't silently map to top_company. If the user asks about unicorns specifically, mention that valuation isn't tracked and ask whether they want top YC companies (proxy) or public YC companies.
 - "pivoted" / "renamed" / "former" → hasFormerNames: true
@@ -253,14 +241,7 @@ const recent = series.slice(-3);
 return { firstHit, peak, recent, totalHits: series.reduce((s, b) => s + b.hits, 0) };
 \`\`\`
 
-When phrasing the answer for a trend question, give the **shape of the data**, not a single data point. Always describe: where it started, the trajectory (rising / falling / flat / spiky / one-and-done), and where it is now. Drop beats that don't apply — a flat phrase has no "took off" moment, a declining phrase has no peak in the recent past. Concrete numbers and specific batch labels (W23, P26) over vague words.
-
-Examples of how the SAME query shape ({ firstHit, peak, recent, totalHits }) yields different answers for different phrases:
-- Growth (AI agent): *"'AI agent' first showed up in S12 with Plivo but stayed under 3% for a decade. It accelerated through W22–S23 and peaked at 29.5% in P26 (39 of 132 companies). Recent batches sit around 20–30%."*
-- Decline (social network): *"'Social network' peaked in S08 (4.2%) and has trended down ever since — under 0.5% in every batch from W18 onward."*
-- Flat noise (one-and-done term): *"'X' shows up sporadically — 1–2 mentions across 5 batches with no sustained presence."*
-
-The query is fixed; the framing flexes to match the curve.
+For trend prose: give the **shape** (start → trajectory → current), not a single point. Concrete numbers and batch labels (W23, P26). Drop beats that don't apply — a flat phrase has no "took off" moment, a declining phrase has no recent peak.
 
 # INDUSTRIES (${industries.length})
 
