@@ -213,7 +213,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <NuqsAdapter>
             <CompaniesProvider>
-              <div className="flex h-screen flex-col">
+              <div className="flex h-dvh flex-col">
                 <Header />
                 <Suspense fallback={null}>
                   <FilterChipBar />
