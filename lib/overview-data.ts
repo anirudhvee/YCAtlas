@@ -1,5 +1,6 @@
 import type { Company, CompanyStatus } from "./types";
 import { batchToShort, batchToSortKey } from "./utils";
+import generatedCityCoords from "./city-coords.generated.json";
 
 export const STATUS_KEYS: CompanyStatus[] = [
   "Active",
@@ -73,6 +74,39 @@ export function aggregatesAboveMinSize(
   minSize = MIN_BATCH_SIZE,
 ): BatchAggregate[] {
   return aggregates.filter((a) => a.total >= minSize);
+}
+
+// Drops Unspecified + batches under MIN_BATCH_SIZE (deferral noise
+// and pre-launch batches). Single source for "N companies" displays.
+export function canonicalCompanies(companies: Company[]): Company[] {
+  const counts = new Map<string, number>();
+  for (const c of companies) {
+    if (c.batch === "Unspecified") continue;
+    counts.set(c.batch, (counts.get(c.batch) ?? 0) + 1);
+  }
+  return companies.filter((c) => {
+    if (c.batch === "Unspecified") return false;
+    return (counts.get(c.batch) ?? 0) >= MIN_BATCH_SIZE;
+  });
+}
+
+export function canonicalCount(companies: Company[]): number {
+  return canonicalCompanies(companies).length;
+}
+
+// Pure data — no `new Date()` so it's safe in cache-components renders.
+export function batchYearSpan(companies: Company[]): number {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const c of companies) {
+    if (c.batch === "Unspecified") continue;
+    const y = Number(c.batch.split(" ")[1]);
+    if (!Number.isFinite(y)) continue;
+    if (y < min) min = y;
+    if (y > max) max = y;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
+  return Math.max(0, max - min + 1);
 }
 
 export function findLatestBatch(
@@ -163,11 +197,44 @@ const NON_CITY_TOKENS = new Set([
   "Global",
 ]);
 
+// Different surface forms of the same place. Normalised before lookup
+// so the leaderboard doesn't show both "New York" and "New York City".
+const CITY_ALIASES: Record<string, string> = {
+  "New York City": "New York",
+  "Tel Aviv-Yafo": "Tel Aviv",
+  Bangalore: "Bengaluru",
+  Bombay: "Mumbai",
+};
+
+// Country / state / region tokens that yc-oss occasionally lists in
+// the city slot. Plotting them at their geo-center fakes precision
+// (a "United States" dot in Kansas means nothing). Drop them — those
+// companies fall into the unmapped bucket honestly.
+const NON_CITY_BLOCKLIST = new Set([
+  "England",
+  "India",
+  "Algeria",
+  "Federal Capital Territory",
+  "Antioquia",
+  "Sindh",
+  "West Java",
+  "NCR",
+  "Alexandria Governorate",
+  "Columbia",
+]);
+
 export function extractCity(allLocations: string): string | null {
   if (!allLocations) return null;
-  const first = allLocations.split(",")[0]?.trim();
+  // Split on `,` and `;` so dual-locations like "Bengaluru; Gurugram"
+  // extract "Bengaluru".
+  let first = allLocations.split(/[,;]/)[0]?.trim();
   if (!first) return null;
   if (NON_CITY_TOKENS.has(first)) return null;
+  // 2-char tokens are state/country codes ("CA", "NY"). Real cities
+  // with ≤2-char names can go in CURATED_CITY_COORDS if needed.
+  if (first.length <= 2) return null;
+  if (NON_CITY_BLOCKLIST.has(first)) return null;
+  first = CITY_ALIASES[first] ?? first;
   return first;
 }
 
@@ -467,11 +534,19 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+export interface PhraseSeriesRow {
+  batch: string;
+  short: string;
+  total: number;
+  matches: number;
+  pct: number;
+}
+
 export function phraseSeries(
   companies: Company[],
   phrase: string,
   minSize = MIN_BATCH_SIZE,
-): Array<{ short: string; pct: number; batch: string }> {
+): PhraseSeriesRow[] {
   const re = new RegExp(`\\b${escapeRegex(phrase.toLowerCase())}\\b`);
   const buckets = new Map<string, { total: number; matches: number }>();
   for (const c of companies) {
@@ -493,12 +568,15 @@ export function phraseSeries(
     .map(([batch, { total, matches }]) => ({
       batch,
       short: batchToShort(batch),
+      total,
+      matches,
       pct: total ? (matches / total) * 100 : 0,
     }));
 }
 
-// [lat, lng] tuples covering ~95% of YC companies, with spelling aliases.
-export const CITY_COORDS: Record<string, [number, number]> = {
+// Curated entries override city-coords.generated.json — edit here
+// for disambiguations (Cambridge MA vs UK) or when Nominatim fumbles.
+const CURATED_CITY_COORDS: Record<string, [number, number]> = {
   // United States, Bay Area
   "San Francisco": [37.77, -122.42],
   "Mountain View": [37.39, -122.08],
@@ -634,12 +712,125 @@ export const CITY_COORDS: Record<string, [number, number]> = {
   Brisbane: [-27.47, 153.03],
   Auckland: [-36.85, 174.76],
   Wellington: [-41.29, 174.78],
+  // YC-context overrides for ambiguous names — Nominatim picks the
+  // wrong "Ontario" / "Saratoga" otherwise.
+  Ontario: [34.07, -117.65],
+  Saratoga: [37.26, -122.02],
 };
+
+export const CITY_COORDS: Record<string, [number, number]> = (() => {
+  const merged: Record<string, [number, number]> = {};
+  for (const [k, v] of Object.entries(generatedCityCoords)) {
+    if (Array.isArray(v) && v.length === 2) {
+      merged[k] = [Number(v[0]), Number(v[1])];
+    }
+  }
+  for (const [k, v] of Object.entries(CURATED_CITY_COORDS)) {
+    merged[k] = v;
+  }
+  return merged;
+})();
 
 export interface CityAggregate {
   name: string;
   count: number;
   dominantStatus: CompanyStatus;
+}
+
+export interface PlottedAggregate {
+  name: string;
+  count: number;
+  coord: [number, number];
+  dominantStatus: CompanyStatus;
+  representative: Company;
+}
+
+export function plottedAggregates(companies: Company[]): PlottedAggregate[] {
+  interface Bucket {
+    coord: [number, number];
+    count: number;
+    byStatus: Record<CompanyStatus, number>;
+    maxTeam: number;
+    representative: Company;
+  }
+  const map = new Map<string, Bucket>();
+  for (const c of companies) {
+    const city = extractCity(c.all_locations);
+    if (!city) continue;
+    const coord = CITY_COORDS[city];
+    if (!coord) continue;
+    let b = map.get(city);
+    if (!b) {
+      b = {
+        coord,
+        count: 0,
+        byStatus: emptyByStatus(),
+        maxTeam: 0,
+        representative: c,
+      };
+      map.set(city, b);
+    }
+    b.count++;
+    b.byStatus[c.status]++;
+    const ts = c.team_size ?? 0;
+    if (ts > b.maxTeam) {
+      b.maxTeam = ts;
+      b.representative = c;
+    }
+  }
+  return [...map.entries()].map(([name, b]) => {
+    let dominant: CompanyStatus = "Active";
+    let mx = -1;
+    for (const k of STATUS_KEYS) {
+      if (b.byStatus[k] > mx) {
+        mx = b.byStatus[k];
+        dominant = k;
+      }
+    }
+    return {
+      name,
+      count: b.count,
+      coord: b.coord,
+      dominantStatus: dominant,
+      representative: b.representative,
+    };
+  });
+}
+
+// plotted + unmappedCity + remote + noLocation === total
+export interface PlotCoverage {
+  total: number;
+  plotted: number;
+  unmappedCity: number;
+  remote: number;
+  noLocation: number;
+}
+
+export function plotCoverage(companies: Company[]): PlotCoverage {
+  let plotted = 0;
+  let unmappedCity = 0;
+  let remote = 0;
+  let noLocation = 0;
+  for (const c of companies) {
+    const city = extractCity(c.all_locations);
+    if (city && CITY_COORDS[city]) {
+      plotted++;
+      continue;
+    }
+    if (city) {
+      unmappedCity++;
+      continue;
+    }
+    // No extractable city — see if the company is explicitly remote
+    // versus genuinely missing location data.
+    const tokens = (c.all_locations ?? "").split(",").map((t) => t.trim());
+    const flaggedRemote =
+      tokens.some((t) => META_REGIONS.has(t)) ||
+      c.regions.some((r) => META_REGIONS.has(r));
+    if (flaggedRemote) remote++;
+    else noLocation++;
+  }
+  return { total: companies.length, plotted, unmappedCity, remote, noLocation };
 }
 
 export function cityAggregates(companies: Company[]): CityAggregate[] {
@@ -672,45 +863,167 @@ export function cityAggregates(companies: Company[]): CityAggregate[] {
 }
 
 export const REGION_COORDS: Record<string, [number, number]> = {
+  // Americas
   "United States of America": [39, -98],
+  USA: [39, -98],
+  "United States": [39, -98],
   Canada: [60, -100],
   Mexico: [23, -102],
+  Brazil: [-14, -52],
+  Argentina: [-38, -64],
+  Chile: [-30, -71],
+  Colombia: [4, -74],
+  Peru: [-9, -75],
+  Ecuador: [-2, -78],
+  Venezuela: [8, -66],
+  Uruguay: [-32, -56],
+  Paraguay: [-23, -58],
+  Bolivia: [-17, -64],
+  "Costa Rica": [10, -84],
+  Panama: [9, -80],
+  Guatemala: [16, -90],
+  Honduras: [15, -87],
+  "El Salvador": [14, -89],
+  Nicaragua: [13, -85],
+  "Dominican Republic": [19, -70],
+  Cuba: [22, -78],
+  Jamaica: [18, -77],
+  Haiti: [19, -72],
+  "Puerto Rico": [18, -66],
+  "Trinidad and Tobago": [11, -61],
+  Bahamas: [25, -77],
+  // Europe
   "United Kingdom": [54, -2],
+  UK: [54, -2],
+  Britain: [54, -2],
+  Ireland: [53, -8],
   Germany: [51, 10],
   France: [46, 2],
   Spain: [40, -3],
   Italy: [42, 12],
   Netherlands: [52, 6],
-  Sweden: [60, 18],
+  Belgium: [50, 4],
+  Luxembourg: [49, 6],
   Switzerland: [47, 8],
-  Ireland: [53, -8],
+  Austria: [47, 14],
+  Portugal: [39, -8],
+  Greece: [39, 22],
+  Cyprus: [35, 33],
+  Malta: [35, 14],
+  Sweden: [60, 18],
+  Norway: [62, 10],
+  Denmark: [56, 10],
+  Finland: [64, 26],
+  Iceland: [65, -18],
   Poland: [52, 19],
+  "Czech Republic": [50, 14],
+  Czechia: [50, 14],
+  Slovakia: [48, 19],
+  Hungary: [47, 19],
+  Romania: [46, 25],
+  Bulgaria: [43, 25],
+  Croatia: [45, 16],
+  Slovenia: [46, 14],
+  Serbia: [44, 21],
+  "Bosnia and Herzegovina": [44, 18],
+  Albania: [41, 20],
+  "North Macedonia": [42, 22],
+  Montenegro: [43, 19],
+  Estonia: [59, 26],
+  Latvia: [57, 25],
+  Lithuania: [55, 24],
+  Belarus: [53, 28],
   Ukraine: [49, 32],
+  Moldova: [47, 28],
   Russia: [60, 100],
+  // Middle East
   Israel: [31, 35],
+  Palestine: [32, 35],
   "United Arab Emirates": [24, 54],
+  UAE: [24, 54],
+  "Saudi Arabia": [23, 45],
+  Qatar: [25, 51],
+  Bahrain: [26, 50],
+  Kuwait: [29, 47],
+  Oman: [21, 56],
+  Jordan: [31, 36],
+  Lebanon: [33, 35],
+  Iran: [32, 53],
+  Iraq: [33, 44],
+  Syria: [35, 38],
+  Yemen: [15, 47],
   Turkey: [39, 35],
+  // Africa
   Egypt: [27, 30],
+  Morocco: [32, -6],
+  Algeria: [28, 1],
+  Tunisia: [35, 9],
+  Libya: [27, 17],
+  Sudan: [16, 30],
+  Ethiopia: [9, 38],
+  Eritrea: [15, 39],
+  Somalia: [6, 47],
   Nigeria: [10, 8],
+  Ghana: [8, -1],
+  "Côte d'Ivoire": [7, -5],
+  "Cote d'Ivoire": [7, -5],
+  "Ivory Coast": [7, -5],
+  Senegal: [14, -14],
+  Mali: [17, -4],
+  Cameroon: [4, 12],
   Kenya: [0, 37],
+  Tanzania: [-6, 35],
+  Uganda: [1, 32],
+  Rwanda: [-2, 30],
+  Burundi: [-3, 30],
   "South Africa": [-30, 25],
+  Zimbabwe: [-19, 30],
+  Zambia: [-13, 28],
+  Botswana: [-22, 24],
+  Namibia: [-22, 17],
+  Mozambique: [-18, 35],
+  Madagascar: [-19, 47],
+  Mauritius: [-20, 57],
+  Angola: [-12, 18],
+  // Asia
   India: [22, 79],
   Pakistan: [30, 70],
   Bangladesh: [24, 90],
+  "Sri Lanka": [7, 80],
+  Nepal: [28, 84],
+  Bhutan: [27, 90],
+  Afghanistan: [33, 65],
   China: [35, 104],
   "Hong Kong": [22, 114],
   Taiwan: [24, 121],
   Japan: [36, 138],
   "South Korea": [37, 128],
+  Korea: [37, 128],
+  "North Korea": [40, 127],
+  Mongolia: [46, 103],
+  Kazakhstan: [48, 67],
+  Uzbekistan: [41, 64],
+  Turkmenistan: [39, 59],
+  Kyrgyzstan: [41, 75],
+  Tajikistan: [38, 71],
+  Georgia: [42, 43],
+  Armenia: [40, 45],
+  Azerbaijan: [40, 47],
+  // Southeast Asia
   Singapore: [1, 104],
+  Malaysia: [4, 102],
   Indonesia: [-2, 118],
   Thailand: [15, 100],
   Vietnam: [16, 108],
   Philippines: [13, 122],
+  Cambodia: [12, 104],
+  Laos: [19, 102],
+  Myanmar: [21, 95],
+  Burma: [21, 95],
+  Brunei: [4, 114],
+  // Oceania
   Australia: [-25, 134],
   "New Zealand": [-41, 174],
-  Brazil: [-14, -52],
-  Argentina: [-38, -64],
-  Chile: [-30, -71],
-  Colombia: [4, -74],
+  Fiji: [-17, 178],
+  "Papua New Guinea": [-6, 145],
 };

@@ -36,13 +36,18 @@
 
 :root {
   --background: #fafaf7;
+  --bg-soft: #f3f3ee;
   --foreground: #18181b;
+  --fg-faint: #9a9aa1;
   --card: #ffffff;
   --card-foreground: #18181b;
   --popover: #ffffff;
   --popover-foreground: #18181b;
   --primary: #ff6600;
   --primary-foreground: #ffffff;
+  --primary-soft: rgba(255, 102, 0, 0.10);
+  --primary-soft-border: rgba(255, 102, 0, 0.30);
+  --primary-line: rgba(255, 102, 0, 0.45);
   --secondary: #f3f3ee;
   --secondary-foreground: #18181b;
   --muted: #f3f3ee;
@@ -51,6 +56,7 @@
   --accent-foreground: #18181b;
   --destructive: #c63a2a;
   --border: #e7e7df;
+  --border-strong: #d8d8ce;
   --input: #e7e7df;
   --ring: #ff6600;
   --status: #16a34a;
@@ -58,18 +64,33 @@
   --status-inactive: #64748b;
   --status-acquired: #10b981;
   --status-public: #a855f7;
+  --comp-AI: #8a8df0;
+  --comp-SaaS: #33b1ff;
+  --comp-Fintech: #5cc8a8;
+  --comp-Crypto: #d4a93c;
+  --comp-Marketplace: #e87aa8;
+  --comp-Climate: #9bd16a;
+  --comp-DevTools: #b483e8;
+  --grid-line: rgba(24, 24, 27, 0.06);
+  --selection-wash: rgba(255, 102, 0, 0.045);
+  --shadow-pop: 0 1px 2px rgba(20, 20, 26, 0.04), 0 8px 28px -12px rgba(20, 20, 26, 0.08);
   --radius: 0.5rem;
 }
 
 .dark {
   --background: #0a0a0c;
+  --bg-soft: #141416;
   --foreground: #ededec;
-  --card: #141416;
+  --fg-faint: #5a5a60;
+  --card: #111114;
   --card-foreground: #ededec;
-  --popover: #141416;
+  --popover: #111114;
   --popover-foreground: #ededec;
   --primary: #ff6600;
   --primary-foreground: #0a0a0c;
+  --primary-soft: rgba(255, 102, 0, 0.14);
+  --primary-soft-border: rgba(255, 102, 0, 0.40);
+  --primary-line: rgba(255, 102, 0, 0.5);
   --secondary: #1c1c20;
   --secondary-foreground: #ededec;
   --muted: #1c1c20;
@@ -77,14 +98,25 @@
   --accent: #1c1c20;
   --accent-foreground: #ededec;
   --destructive: #f97162;
-  --border: #23232a;
-  --input: #23232a;
+  --border: #1f1f25;
+  --border-strong: #2a2a32;
+  --input: #1f1f25;
   --ring: #ff6600;
   --status: #22c55e;
   --status-active: #0891b2;
   --status-inactive: #64748b;
   --status-acquired: #10b981;
   --status-public: #a855f7;
+  --comp-AI: #8a8df0;
+  --comp-SaaS: #33b1ff;
+  --comp-Fintech: #5cc8a8;
+  --comp-Crypto: #d4a93c;
+  --comp-Marketplace: #e87aa8;
+  --comp-Climate: #9bd16a;
+  --comp-DevTools: #b483e8;
+  --grid-line: rgba(237, 237, 236, 0.05);
+  --selection-wash: rgba(255, 102, 0, 0.06);
+  --shadow-pop: 0 0 0 1px var(--border-strong), 0 8px 28px -12px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
@@ -196,3 +228,174 @@
   transform: scale(1.15);
 }
 
+/* ----- Redesign helpers ----- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.cap-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.text-faint {
+  color: var(--fg-faint);
+}
+.bg-soft {
+  background-color: var(--bg-soft);
+}
+
+/* Page-head: eyebrow / headline / subtitle on left, meta on right */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 4px;
+  flex-wrap: wrap;
+}
+.page-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+}
+.page-head .sub {
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+.page-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+}
+
+/* Segmented control */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px;
+  background: var(--card);
+}
+.seg button {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  border-radius: 5px;
+  transition: color 120ms, background-color 120ms;
+  background: transparent;
+  border: 0;
+}
+.seg button.active,
+.seg button[aria-pressed="true"] {
+  color: var(--foreground);
+  background: var(--bg-soft);
+}
+.seg button:hover:not(.active):not([aria-pressed="true"]) {
+  color: var(--foreground);
+}
+
+/* Stat pill */
+.stat-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+}
+.stat-pill .v {
+  color: var(--foreground);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.stat-pill .delta {
+  color: var(--primary);
+}
+
+/* Pill button (toolbar) */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted-foreground);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms, background-color 120ms;
+}
+.pill-btn:hover {
+  color: var(--foreground);
+  border-color: var(--border-strong);
+}
+.pill-btn[aria-pressed="true"],
+.pill-btn.active {
+  border-color: var(--primary-soft-border);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* Hairline divider used in toolbars */
+.divider-v {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  display: inline-block;
+}
+
+/* Live dot (sidebar footer) */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
+  animation: live-pulse 1.8s ease-out infinite;
+}
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+  100% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+}
+
+/* Wall hover ring helper */
+.wall-cell {
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 140ms;
+}
+
+/* Subtle scrollbar inside scrollable canvases */
+.scroll-fine::-webkit-scrollbar { width: 10px; height: 10px; }
+.scroll-fine::-webkit-scrollbar-track { background: transparent; }
+.scroll-fine::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+}
+.scroll-fine::-webkit-scrollbar-thumb:hover { background: var(--fg-faint); }

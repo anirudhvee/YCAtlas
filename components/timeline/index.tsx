@@ -75,8 +75,8 @@ const OUTCOME_METRICS: MetricOption[] = [
   },
   {
     id: "top_company",
-    label: "% top",
-    hint: "share of each batch flagged top-company, for batches 5+ years old",
+    label: "% top company",
+    hint: "Share of each batch flagged top company by YC, for batches 5+ years old",
   },
 ];
 
@@ -84,12 +84,12 @@ const COMPOSITION_METRICS: MetricOption[] = [
   {
     id: "industry",
     label: "by industry",
-    hint: "industry mix per batch",
+    hint: "Industry mix per batch",
   },
   {
     id: "region",
-    label: "by region",
-    hint: "country mix per batch",
+    label: "by country",
+    hint: "Country mix per batch",
   },
   {
     id: "intl",
@@ -99,12 +99,12 @@ const COMPOSITION_METRICS: MetricOption[] = [
   {
     id: "team_size",
     label: "median team size",
-    hint: "median current headcount across each batch's companies",
+    hint: "Median current headcount across the batch",
   },
   {
     id: "country_diversity",
     label: "country diversity",
-    hint: "distinct non-US countries represented per batch",
+    hint: "Distinct non-US countries represented per batch",
   },
 ];
 
@@ -389,28 +389,28 @@ export function Timeline() {
 
   const tickInterval = Math.max(0, Math.floor(series.rows.length / 10) - 1);
 
+  // Sum from buckets so the page-head totals match the canonical
+  // batches that drive every chart on the page (no Unspecified, no
+  // tiny/deferral-only batches).
   const totals = useMemo(() => {
     let active = 0;
     let inactive = 0;
     let acquired = 0;
     let pub = 0;
     let topCo = 0;
-    for (const c of filteredForTimeline) {
-      if (c.status === "Active") active++;
-      else if (c.status === "Inactive") inactive++;
-      else if (c.status === "Acquired") acquired++;
-      else if (c.status === "Public") pub++;
-      if (c.top_company === true) topCo++;
+    let total = 0;
+    for (const b of buckets) {
+      for (const c of b.companies) {
+        total++;
+        if (c.status === "Active") active++;
+        else if (c.status === "Inactive") inactive++;
+        else if (c.status === "Acquired") acquired++;
+        else if (c.status === "Public") pub++;
+        if (c.top_company === true) topCo++;
+      }
     }
-    return {
-      total: filteredForTimeline.length,
-      active,
-      inactive,
-      acquired,
-      pub,
-      topCo,
-    };
-  }, [filteredForTimeline]);
+    return { total, active, inactive, acquired, pub, topCo };
+  }, [buckets]);
 
   const insights = useMemo(() => {
     if (fates.length === 0) {
@@ -433,24 +433,21 @@ export function Timeline() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-border bg-card/40 px-6 py-3">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              Timeline
-            </div>
-            <div className="mt-1 text-sm text-foreground">
-              How YC has grown across{" "}
-              <span className="font-mono tabular-nums">
-                {buckets.length}
-              </span>{" "}
-              batches ·{" "}
-              <span className="font-mono tabular-nums text-muted-foreground">
-                {firstBatch} → {lastBatch}
-              </span>
+      <div className="px-5 pt-5">
+        <div className="mx-auto max-w-[1480px]">
+          <div className="page-head">
+            <div>
+              <div className="eyebrow">
+                Timeline · {totals.total.toLocaleString()} companies
+              </div>
+              <h1>How YC has grown across {buckets.length} batches</h1>
+              <div className="sub">
+                {firstBatch} → {lastBatch} · click a metric to change what
+                gets stacked.
+              </div>
             </div>
           </div>
-          <div className="ml-auto flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-[10px] tabular-nums">
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-[10.5px] tabular-nums">
             <Stat label="total" value={totals.total} />
             <StatColored
               color={STATUS_COLORS.Active}
@@ -472,13 +469,14 @@ export function Timeline() {
               label="inactive"
               value={totals.inactive}
             />
-            <Stat label="top YC" value={totals.topCo} />
+            <Stat label="top company" value={totals.topCo} />
           </div>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="flex min-h-[280px] flex-[3] flex-col rounded border border-border bg-card p-3">
+      <div className="scroll-fine mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 flex-col gap-[14px] overflow-y-auto px-5 pt-4 pb-7 lg:grid lg:grid-cols-[minmax(0,1fr)_232px]">
+        <div className="flex flex-col gap-[14px]">
+        <div className="flex h-[360px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
             <div>
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
@@ -599,7 +597,7 @@ export function Timeline() {
           )}
         </div>
 
-        <div className="flex min-h-[220px] flex-[2] flex-col rounded border border-border bg-card p-3">
+        <div className="flex h-[280px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
             <div>
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
@@ -711,6 +709,110 @@ export function Timeline() {
               ))}
           </div>
         </div>
+
+        </div>
+
+        <div className="grid grid-cols-2 gap-[14px] lg:h-full lg:grid-cols-1 lg:grid-rows-4">
+          <KpiTile
+            label="Active rate"
+            value={pct(totals.active, totals.total, 0)}
+            caption={`across ${fates.length} batches`}
+            series={fates.map((f) => f.Active)}
+            color={STATUS_COLORS.Active}
+          />
+          <KpiTile
+            label="Acquired rate"
+            value={pct(totals.acquired, totals.total, 1)}
+            caption={`${totals.acquired.toLocaleString()} all-time`}
+            series={fates.map((f) => f.Acquired)}
+            color={STATUS_COLORS.Acquired}
+            accent
+          />
+          <KpiTile
+            label="Public rate"
+            value={pct(totals.pub, totals.total, 1)}
+            caption={`${totals.pub.toLocaleString()} all-time`}
+            series={fates.map((f) => f.Public)}
+            color={STATUS_COLORS.Public}
+          />
+          <KpiTile
+            label="Inactive rate"
+            value={pct(totals.inactive, totals.total, 0)}
+            caption={`${totals.inactive.toLocaleString()} all-time`}
+            series={fates.map((f) => f.Inactive)}
+            color={STATUS_COLORS.Inactive}
+            mute
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function pct(num: number, denom: number, decimals: number): string {
+  if (denom <= 0) return "—";
+  return `${((num / denom) * 100).toFixed(decimals)}%`;
+}
+
+function KpiTile({
+  label,
+  value,
+  caption,
+  series,
+  color,
+  accent = false,
+  mute = false,
+}: {
+  label: string;
+  value: string;
+  caption: string;
+  series: number[];
+  color: string;
+  accent?: boolean;
+  mute?: boolean;
+}) {
+  // Bar-roll: full per-batch history, oldest → newest.
+  const barMax = Math.max(...series, 0.01);
+
+  return (
+    <div className="flex h-full min-h-[132px] flex-col gap-1.5 rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
+      <div className="font-mono text-[10px] text-muted-foreground">{label}</div>
+      <div className="flex items-baseline gap-1.5 font-mono">
+        <span
+          className={cn(
+            "text-[26px] font-medium leading-none tracking-[-0.01em] tabular-nums",
+            accent ? "text-primary" : "text-foreground",
+          )}
+        >
+          {value}
+        </span>
+      </div>
+      <div
+        className={cn(
+          "font-mono text-[10px] tabular-nums",
+          mute ? "text-faint" : "text-muted-foreground",
+        )}
+      >
+        {caption}
+      </div>
+      <div className="mt-auto flex h-[26px] items-end gap-[2px]">
+        {series.length === 0 ? (
+          <span className="text-faint font-mono text-[10px]">—</span>
+        ) : (
+          series.map((v, i) => (
+            <span
+              key={i}
+              style={{
+                flex: 1,
+                height: `${Math.max(6, (v / barMax) * 100)}%`,
+                backgroundColor: color,
+                opacity: 0.55,
+                borderRadius: 1,
+              }}
+              title={`per-batch share: ${v.toFixed(1)}%`}
+            />
+          ))
+        )}
       </div>
     </div>
   );
@@ -738,12 +840,8 @@ function MetricTab({
     <button
       type="button"
       onClick={() => onSelect(opt.id)}
-      className={cn(
-        "rounded border px-2 py-0.5 transition-colors",
-        active
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-      )}
+      aria-pressed={active}
+      className={cn("pill-btn", active && "active")}
     >
       {opt.label}
     </button>

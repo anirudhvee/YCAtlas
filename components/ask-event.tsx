@@ -250,7 +250,7 @@ function deriveChips(filter: FilterState): string[] {
   for (const t of filter.tags) chips.push(t);
   for (const r of filter.regions) chips.push(r);
   for (const s of filter.stage) chips.push(s);
-  if (filter.top_company === true) chips.push("top YC");
+  if (filter.top_company === true) chips.push("top company");
   if (filter.hasFormerNames === true) chips.push("pivoted");
   if (filter.teamSizeMin !== null) chips.push(`team ≥ ${filter.teamSizeMin}`);
   if (filter.teamSizeMax !== null) chips.push(`team ≤ ${filter.teamSizeMax}`);

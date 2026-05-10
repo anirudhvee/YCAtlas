@@ -31,6 +31,7 @@ function decodeAndApply() {
     view,
     filters,
     phrases: decoded.phrases ?? [],
+    compareBatches: decoded.compareBatches ?? [],
   });
 }
 
@@ -40,8 +41,13 @@ export function HashSync() {
 
   useEffect(() => {
     const writeHash = () => {
-      const { view, filters, phrases } = useUi.getState();
-      const encoded = encodeHash({ view, ...filters, phrases });
+      const { view, filters, phrases, compareBatches } = useUi.getState();
+      const encoded = encodeHash({
+        view,
+        ...filters,
+        phrases,
+        compareBatches,
+      });
       const newHash = encoded ? `#${encoded}` : "";
       const currentHash = window.location.hash;
       if (newHash === currentHash) return;
@@ -59,7 +65,8 @@ export function HashSync() {
       if (
         state.view === prev.view &&
         state.filters === prev.filters &&
-        state.phrases === prev.phrases
+        state.phrases === prev.phrases &&
+        state.compareBatches === prev.compareBatches
       )
         return;
       if (debounceRef.current) clearTimeout(debounceRef.current);

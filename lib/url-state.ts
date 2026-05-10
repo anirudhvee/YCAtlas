@@ -15,6 +15,7 @@ export interface UrlDecoded {
   teamSizeMax?: number;
   search?: string;
   phrases?: string[];
+  compareBatches?: string[];
 }
 
 export interface UrlInput {
@@ -32,6 +33,7 @@ export interface UrlInput {
   teamSizeMax: number | null;
   search: string | null;
   phrases: string[];
+  compareBatches: string[];
 }
 
 const SEASON_FROM_SHORT: Record<string, string> = {
@@ -85,6 +87,9 @@ export function encodeHash(state: UrlInput): string {
   if (state.teamSizeMax !== null) parts.push(`tmax=${state.teamSizeMax}`);
   if (state.search) parts.push(`q=${enc(state.search)}`);
   if (state.phrases.length) parts.push(`bw=${csvEncode(state.phrases)}`);
+  if (state.compareBatches.length) {
+    parts.push(`cmp=${csvEncode(state.compareBatches.map(batchToShort))}`);
+  }
 
   return parts.join("&");
 }
@@ -138,6 +143,9 @@ export function decodeHash(hash: string): UrlDecoded {
 
   const bw = params.get("bw");
   if (bw) out.phrases = csvDecode(bw);
+
+  const cmp = params.get("cmp");
+  if (cmp) out.compareBatches = csvDecode(cmp).map(batchFromShort);
 
   return out;
 }

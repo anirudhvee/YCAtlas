@@ -3,7 +3,8 @@
 import { cn } from "@/lib/utils";
 
 interface TileProps {
-  header: React.ReactNode;
+  title: string;
+  meta?: React.ReactNode;
   footer: React.ReactNode;
   onClick: () => void;
   children: React.ReactNode;
@@ -11,7 +12,8 @@ interface TileProps {
 }
 
 export function Tile({
-  header,
+  title,
+  meta,
   footer,
   onClick,
   children,
@@ -29,15 +31,22 @@ export function Tile({
         }
       }}
       className={cn(
-        "group flex h-[160px] cursor-pointer flex-col gap-2 rounded border border-border bg-card p-3 text-left transition-colors hover:border-foreground/30 focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
+        "group flex h-[168px] cursor-pointer flex-col gap-2.5 rounded-[10px] border border-border bg-card p-3.5 text-left transition-colors hover:border-[color:var(--border-strong)] focus-visible:border-[color:var(--primary-line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
         className,
       )}
     >
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
-        {header}
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="text-[13px] font-medium tracking-[-0.005em] text-foreground">
+          {title}
+        </div>
+        {meta && (
+          <div className="font-mono text-[10px] tabular-nums text-muted-foreground">
+            {meta}
+          </div>
+        )}
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
-      <div className="font-mono text-[9.5px] tracking-wider text-muted-foreground/70 transition-colors group-hover:text-primary">
+      <div className="inline-flex items-center gap-1 self-start font-mono text-[10px] tracking-[0.04em] text-muted-foreground transition-colors group-hover:text-primary">
         {footer}
       </div>
     </div>

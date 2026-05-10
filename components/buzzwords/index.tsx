@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   Area,
@@ -15,23 +15,26 @@ import {
 import { useCompanies } from "@/components/companies-provider";
 import { filterCompanies, useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
+import { THRESHOLDS } from "@/lib/compare-data";
 import { phraseSeries } from "@/lib/overview-data";
+import { DEFAULT_PHRASES } from "@/lib/phrases";
 import { batchToShort, cn } from "@/lib/utils";
 import type { Company } from "@/lib/types";
 
-const DEFAULT_PHRASES = [
-  "AI",
-  "agents",
-  "agentic",
-  "Claude",
-  "copilot",
-  "autonomous",
-  "platform",
-  "community",
-  "real-time",
-  "cloud",
-  "Cursor for",
+const PHRASE_COLORS = [
+  "var(--primary)",
+  "var(--comp-AI)",
+  "var(--comp-Fintech)",
+  "var(--comp-SaaS)",
+  "var(--comp-Marketplace)",
+  "var(--comp-Climate)",
+  "var(--comp-DevTools)",
+  "var(--comp-Crypto)",
 ];
+
+function phraseColor(i: number) {
+  return PHRASE_COLORS[i % PHRASE_COLORS.length];
+}
 
 export function Buzzwords() {
   const all = useCompanies();
@@ -41,8 +44,6 @@ export function Buzzwords() {
   const removePhrase = useUi((s) => s.removePhrase);
   const mounted = useMounted();
 
-  // Time-series view: strip the batches filter so the selected
-  // batch shows as a ReferenceLine instead of collapsing the chart.
   const filteredForBuzzwords = useMemo(
     () => filterCompanies(all, { ...filters, batches: [] }),
     [all, filters],
@@ -68,23 +69,74 @@ export function Buzzwords() {
     ];
   }, [phrases, mounted]);
 
+  const summaryPhrases = list.slice(0, 8).map((l) => l.phrase);
+
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {list.map(({ phrase, removable }) => (
-          <PhraseChart
-            key={phrase}
-            phrase={phrase}
-            companies={companies}
-            selectedBatch={selectedBatch}
-            removable={removable}
-            onRemove={() => removePhrase(phrase)}
+    <div className="scroll-fine h-full overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+        <div className="page-head">
+          <div>
+            <div className="eyebrow">
+              Buzzwords · {list.length} phrases tracked
+            </div>
+            <h1>What founders are saying</h1>
+            <div className="sub">
+              Phrase share of cohort over time. Add your own to compare.
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex h-[300px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-[3px]">
+              <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground">
+                All phrases
+              </div>
+              <div className="text-[12px] text-muted-foreground">
+                % of cohort mentioning the phrase · hover a line to isolate
+              </div>
+            </div>
+            <div
+              className="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1 font-mono text-[10px] text-muted-foreground"
+              style={{ maxWidth: 360 }}
+            >
+              {summaryPhrases.map((p, i) => (
+                <span key={p} className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden
+                    className="inline-block size-2 rounded-sm"
+                    style={{ backgroundColor: phraseColor(i) }}
+                  />
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 min-h-0 flex-1">
+            <BuzzMultiLine
+              phrases={summaryPhrases}
+              companies={companies}
+              selectedBatch={selectedBatch}
+            />
+          </div>
+        </div>
+
+        <div className="mt-3.5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {list.map(({ phrase, removable }) => (
+            <PhraseChart
+              key={phrase}
+              phrase={phrase}
+              companies={companies}
+              selectedBatch={selectedBatch}
+              removable={removable}
+              onRemove={() => removePhrase(phrase)}
+            />
+          ))}
+          <AddPhraseCell
+            existing={list.map((l) => l.phrase.toLowerCase())}
+            onAdd={addPhrase}
           />
-        ))}
-        <AddPhraseCell
-          existing={list.map((l) => l.phrase.toLowerCase())}
-          onAdd={addPhrase}
-        />
+        </div>
       </div>
     </div>
   );
@@ -109,9 +161,21 @@ function PhraseChart({
 
   const stats = useMemo(() => {
     if (data.length === 0) return null;
-    let peak = data[0];
-    for (const d of data) if (d.pct > peak.pct) peak = d;
-    const cross = data.find((d) => d.pct >= 5) ?? null;
+    // Tiny early YC batches (n=9) show 11% from one match — pure
+    // noise. Apply the size + match floors from compare-data.
+    const sample = data.filter(
+      (d) => d.total >= THRESHOLDS.BUZZ_MIN_BATCH_SIZE,
+    );
+    const pool = sample.length > 0 ? sample : data;
+    let peak = pool[0];
+    for (const d of pool) if (d.pct > peak.pct) peak = d;
+    const cross =
+      data.find(
+        (d) =>
+          d.pct >= 5 &&
+          d.total >= THRESHOLDS.BUZZ_MIN_BATCH_SIZE &&
+          d.matches >= THRESHOLDS.BUZZ_MIN_MATCHES,
+      ) ?? null;
     return { peak, cross };
   }, [data]);
 
@@ -123,12 +187,12 @@ function PhraseChart({
 
   const subtitle = stats
     ? `peak ${stats.peak.short} · ${
-        stats.cross ? `5%↑ ${stats.cross.short}` : "below 5% throughout"
+        stats.cross ? `passed 5% in ${stats.cross.short}` : "below 5% throughout"
       }`
     : "no data";
 
   return (
-    <div className="relative flex h-[200px] flex-col rounded border border-border bg-card p-3">
+    <div className="relative flex h-[200px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
@@ -143,7 +207,7 @@ function PhraseChart({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${phrase}`}
-            className="shrink-0 font-mono text-[12px] leading-none text-muted-foreground/60 transition-colors hover:text-foreground"
+            className="shrink-0 font-mono text-[14px] leading-none text-muted-foreground/60 transition-colors hover:text-foreground"
           >
             ×
           </button>
@@ -247,14 +311,19 @@ function AddPhraseCell({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex h-[200px] flex-col rounded border border-primary/30 bg-card p-3 transition-colors focus-within:border-primary/70 hover:border-primary/50"
+      className={cn(
+        "flex h-[200px] flex-col rounded-[10px] border bg-card p-3.5 transition-colors",
+        error
+          ? "border-destructive/60"
+          : "border-[color:var(--primary-soft-border)] focus-within:border-[color:var(--primary-line)] hover:border-[color:var(--primary-line)]",
+      )}
     >
       <div>
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
           + new phrase
         </div>
         <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-          track frequency across YC descriptions
+          Track how often it shows up in pitches
         </div>
       </div>
 
@@ -264,7 +333,7 @@ function AddPhraseCell({
             "flex items-center gap-2 rounded border bg-background pl-3 pr-1.5 py-1.5 transition-colors",
             error
               ? "border-destructive/60"
-              : "border-border focus-within:border-primary/70",
+              : "border-border focus-within:border-[color:var(--primary-line)]",
           )}
         >
           <input
@@ -321,6 +390,156 @@ function PhraseChartTooltip({
         {phrase} <span className="text-muted-foreground">·</span> {label}
       </div>
       <div className="text-foreground">{(row.pct ?? 0).toFixed(1)}%</div>
+    </div>
+  );
+}
+
+function BuzzMultiLine({
+  phrases,
+  companies,
+  selectedBatch,
+}: {
+  phrases: string[];
+  companies: Company[];
+  selectedBatch: string | null;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [hover, setHover] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver((es) => {
+      for (const e of es)
+        setSize({ w: e.contentRect.width, h: e.contentRect.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const data = useMemo(() => {
+    return phrases.map((p) => phraseSeries(companies, p));
+  }, [phrases, companies]);
+
+  // Build a unified x-axis using the longest series.
+  const longest = data.reduce(
+    (m, s) => (s.length > m.length ? s : m),
+    [] as { short: string; pct: number; batch: string }[],
+  );
+  const xLookup = new Map<string, number>();
+  longest.forEach((d, i) => xLookup.set(d.short, i));
+
+  const { w, h } = size;
+  const padL = 36,
+    padR = 8,
+    padT = 8,
+    padB = 22;
+  const innerW = Math.max(0, w - padL - padR);
+  const innerH = Math.max(0, h - padT - padB);
+  const xAt = (i: number) =>
+    padL +
+    (longest.length === 1 ? innerW / 2 : (i / (longest.length - 1)) * innerW);
+
+  const max = Math.max(20, ...data.flat().map((d) => d.pct));
+  const yAt = (v: number) => padT + innerH - (v / max) * innerH;
+
+  const yTicks = [0, max * 0.25, max * 0.5, max * 0.75, max].map((v) =>
+    Math.round(v),
+  );
+  const xInt = Math.max(1, Math.floor(longest.length / 8));
+
+  const selIdx = selectedBatch
+    ? longest.findIndex((d) => d.batch === selectedBatch)
+    : -1;
+
+  return (
+    <div
+      ref={ref}
+      className="size-full"
+      onMouseLeave={() => setHover(null)}
+    >
+      {w > 0 && longest.length > 0 && (
+        <svg width={w} height={h} className="block">
+          <g>
+            {yTicks.map((t) => (
+              <line
+                key={t}
+                x1={padL}
+                x2={w - padR}
+                y1={yAt(t)}
+                y2={yAt(t)}
+                stroke="var(--grid-line)"
+              />
+            ))}
+          </g>
+          {selIdx >= 0 && (
+            <line
+              x1={xAt(selIdx)}
+              x2={xAt(selIdx)}
+              y1={padT}
+              y2={h - padB}
+              stroke="var(--primary)"
+              strokeWidth={1.5}
+            />
+          )}
+          {data.map((s, i) => {
+            const path = s
+              .map((d, j) => {
+                const xi = xLookup.get(d.short);
+                if (xi == null) return "";
+                return `${j === 0 ? "M" : "L"}${xAt(xi)},${yAt(d.pct)}`;
+              })
+              .filter(Boolean)
+              .join("");
+            const op = hover == null ? 1 : hover === i ? 1 : 0.2;
+            return (
+              <path
+                key={phrases[i]}
+                d={path}
+                fill="none"
+                stroke={phraseColor(i)}
+                strokeWidth={hover === i ? 2.2 : 1.5}
+                strokeOpacity={op}
+                onMouseEnter={() => setHover(i)}
+                style={{ cursor: "pointer" }}
+              />
+            );
+          })}
+          <g
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9.5,
+              fill: "var(--muted-foreground)",
+            }}
+          >
+            {yTicks.map((t) => (
+              <text
+                key={t}
+                x={padL - 6}
+                y={yAt(t)}
+                dy="0.32em"
+                textAnchor="end"
+              >
+                {t}%
+              </text>
+            ))}
+            {longest.map(
+              (d, i) =>
+                (i % xInt === 0 || i === longest.length - 1) && (
+                  <text
+                    key={d.short}
+                    x={xAt(i)}
+                    y={h - 6}
+                    textAnchor="middle"
+                  >
+                    {d.short}
+                  </text>
+                ),
+            )}
+          </g>
+        </svg>
+      )}
     </div>
   );
 }

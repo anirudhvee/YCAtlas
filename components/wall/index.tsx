@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies, useUi } from "@/lib/store";
+import { filterCompanies, useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
+import { canonicalCompanies, canonicalCount } from "@/lib/overview-data";
 import { batchToShort, batchToSortKey, cn } from "@/lib/utils";
 import type { Company } from "@/lib/types";
 
@@ -52,8 +53,12 @@ function compareCompanies(a: Company, b: Company, sort: SortKey): number {
 
 export function Wall() {
   const all = useCompanies();
-  const filtered = useFilteredCompanies(all);
+  const canonical = useMemo(() => canonicalCompanies(all), [all]);
   const filters = useUi((s) => s.filters);
+  const filtered = useMemo(
+    () => filterCompanies(canonical, filters),
+    [canonical, filters],
+  );
   const setFilters = useUi((s) => s.setFilters);
   const clearFilters = useUi((s) => s.clearFilters);
   const mounted = useMounted();
@@ -90,6 +95,7 @@ export function Wall() {
 
   const total = sorted.length;
   const cells = total > MAX_CELLS ? sorted.slice(0, MAX_CELLS) : sorted;
+  const universe = useMemo(() => canonicalCount(all), [all]);
 
   const selectedBatch =
     mounted && filters.batches.length === 1 ? filters.batches[0] : null;
@@ -99,60 +105,77 @@ export function Wall() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/40 px-4 py-2 font-mono text-[11px]">
-        <span className="text-muted-foreground">sort:</span>
-        {SORT_OPTIONS.map((opt) => {
-          const active = sort === opt.id;
-          return (
-            <PillButton
-              key={opt.id}
-              active={active}
-              onClick={() => setSort(opt.id)}
-            >
-              {opt.label}
-            </PillButton>
-          );
-        })}
+      <div className="border-b border-border px-5 pt-5 pb-3">
+        <div className="mx-auto max-w-[1480px]">
+          <div className="page-head">
+            <div>
+              <div className="eyebrow">
+                Wall · {universe.toLocaleString()} companies
+              </div>
+              <h1>Every YC company at a glance</h1>
+              <div className="sub">
+                Each tile is a company. Hover for details, click to open. Sort
+                and filter to slice by batch or status.
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-[11px]">
+          <span className="text-muted-foreground">sort:</span>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sort === opt.id;
+            return (
+              <PillButton
+                key={opt.id}
+                active={active}
+                onClick={() => setSort(opt.id)}
+              >
+                {opt.label}
+              </PillButton>
+            );
+          })}
 
-        <span className="mx-1 h-3 w-px bg-border" />
-        <span className="text-muted-foreground">batch:</span>
-        <PillButton
-          active={allBatchesActive}
-          onClick={() => setFilters({ batches: [] })}
-        >
-          all
-        </PillButton>
-        <PillButton
-          active={latestActive}
-          onClick={() => {
-            if (latestBatch) setFilters({ batches: [latestBatch] });
-          }}
-        >
-          latest{latestBatch ? ` · ${batchToShort(latestBatch)}` : ""}
-        </PillButton>
-        <select
-          value={selectedBatch ?? ""}
-          onChange={(e) => {
-            const v = e.target.value;
-            setFilters({ batches: v ? [v] : [] });
-          }}
-          className="rounded border border-border bg-card px-2 py-0.5 text-[11px] text-foreground outline-none transition-colors hover:border-foreground/30 focus:border-primary/40"
-          aria-label="Pick batch"
-        >
-          <option value="">pick batch</option>
-          {allBatches.map((b) => (
-            <option key={b} value={b}>
-              {batchToShort(b)}
-            </option>
-          ))}
-        </select>
+          <span className="divider-v mx-1" />
+          <span className="text-muted-foreground">batch:</span>
+          <PillButton
+            active={allBatchesActive}
+            onClick={() => setFilters({ batches: [] })}
+          >
+            all
+          </PillButton>
+          <PillButton
+            active={latestActive}
+            onClick={() => {
+              if (latestBatch) setFilters({ batches: [latestBatch] });
+            }}
+          >
+            latest{latestBatch ? ` · ${batchToShort(latestBatch)}` : ""}
+          </PillButton>
+          <select
+            value={selectedBatch ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setFilters({ batches: v ? [v] : [] });
+            }}
+            className="rounded border border-border bg-card px-2 py-0.5 text-[11px] text-foreground outline-none transition-colors hover:border-[color:var(--border-strong)] focus:border-[color:var(--primary-line)]"
+            aria-label="Pick batch"
+          >
+            <option value="">pick batch</option>
+            {allBatches.map((b) => (
+              <option key={b} value={b}>
+                {batchToShort(b)}
+              </option>
+            ))}
+          </select>
 
-        <span className="ml-auto tabular-nums text-muted-foreground">
-          {total.toLocaleString()} companies
-        </span>
+          <span className="ml-auto tabular-nums text-muted-foreground">
+            {total.toLocaleString()} companies
+          </span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="scroll-fine flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[1480px] px-5 py-5">
         {total === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -186,6 +209,7 @@ export function Wall() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );
@@ -205,11 +229,10 @@ function PillButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded border px-2 py-0.5 transition-colors",
-        active
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+        "pill-btn",
+        active && "active",
       )}
+      aria-pressed={active}
     >
       {children}
     </button>

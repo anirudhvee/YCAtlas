@@ -18,7 +18,7 @@ import {
 } from "@/lib/overview-data";
 import type { Company } from "@/lib/types";
 import { batchToShort } from "@/lib/utils";
-import { ChartCard } from "./chart-card";
+import { ChartCard, Legend, StatPill } from "./chart-card";
 
 interface Props {
   companies: Company[];
@@ -30,9 +30,40 @@ export function CompositionChart({ companies, selectedBatch }: Props) {
 
   const tickInterval = Math.max(0, Math.floor(data.length / 8) - 1);
 
+  const stats = useMemo(() => {
+    if (data.length === 0) return null;
+    const last = data[data.length - 1];
+    const lastAI = Number(last.AI ?? 0);
+    const firstAI = Number(data[0].AI ?? 0);
+    // Among non-AI groups, find the one most prominent in the latest
+    // batch — gives a meaningful counter-stat to "AI now". (Old code
+    // hardcoded Crypto/Web3 which peaks at ~1% in the real data and
+    // read as fake-precision.)
+    let runnerUpLabel = "";
+    let runnerUpPct = 0;
+    for (const g of COMPOSITION_TAG_GROUPS) {
+      if (g.label === "AI") continue;
+      const v = Number(last[g.label] ?? 0);
+      if (v > runnerUpPct) {
+        runnerUpPct = v;
+        runnerUpLabel = g.label;
+      }
+    }
+    return {
+      lastAI,
+      delta: lastAI - firstAI,
+      runnerUpLabel,
+      runnerUpPct,
+    };
+  }, [data]);
+
   if (data.length === 0) {
     return (
-      <ChartCard title="COMPOSITION" subtitle="Tag mix per batch, over time" className="h-[280px]">
+      <ChartCard
+        title="Composition"
+        subtitle="Tag mix per batch over time"
+        className="h-[280px]"
+      >
         <div className="grid h-full place-items-center font-mono text-[10px] text-muted-foreground">
           No data
         </div>
@@ -41,7 +72,38 @@ export function CompositionChart({ companies, selectedBatch }: Props) {
   }
 
   return (
-    <ChartCard title="COMPOSITION" subtitle="Tag mix per batch, over time" className="h-[280px]">
+    <ChartCard
+      title="Composition"
+      subtitle="Tag mix per batch over time · share of cohort"
+      className="h-[300px]"
+      selected={selectedBatch !== null}
+      headRight={
+        <Legend
+          items={COMPOSITION_TAG_GROUPS.map((g) => ({
+            label: g.label,
+            color: COMPOSITION_COLORS[g.label],
+          }))}
+          maxWidth={320}
+        />
+      }
+      stats={
+        stats ? (
+          <>
+            <StatPill
+              label="AI now"
+              value={`${stats.lastAI.toFixed(0)}%`}
+              delta={`▲ ${Math.max(0, stats.delta).toFixed(0)} pts`}
+            />
+            {stats.runnerUpPct >= 3 && stats.runnerUpLabel && (
+              <StatPill
+                label={`${stats.runnerUpLabel} now`}
+                value={`${stats.runnerUpPct.toFixed(0)}%`}
+              />
+            )}
+          </>
+        ) : undefined
+      }
+    >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
           <XAxis

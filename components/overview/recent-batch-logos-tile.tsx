@@ -12,8 +12,6 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
   const setSelectedCompany = useUi((s) => s.setSelectedCompany);
 
   const { latestBatch, latestShort, logos, total } = useMemo(() => {
-    // Strict rule first; fall back to any batch with ≥1 company so a
-    // narrow filter doesn't blank out the tile.
     const latest =
       findLatestBatch(companies) ?? findLatestBatch(companies, 1);
     if (!latest) {
@@ -28,12 +26,13 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
     };
   }, [companies]);
 
-  // Inlined instead of using <Tile> because each logo is its own
-  // <button>; nesting buttons under a role="button" tile is invalid.
   return (
-    <div className="group/tile flex h-[160px] flex-col gap-2 rounded border border-border bg-card p-3 transition-colors hover:border-foreground/30">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
-        {latestShort}
+    <div className="group flex h-[168px] flex-col gap-2.5 rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="cap-label">{latestShort}</div>
+        <div className="font-mono text-[10px] tabular-nums text-muted-foreground">
+          {total} companies
+        </div>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         {logos.length === 0 ? (
@@ -48,7 +47,7 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
                 type="button"
                 aria-label={c.name}
                 onClick={() => setSelectedCompany(c)}
-                className="aspect-square overflow-hidden rounded-sm bg-muted/40 transition-transform hover:scale-110"
+                className="aspect-square overflow-hidden rounded-sm bg-[color:var(--bg-soft)] transition-transform duration-150 ease-out hover:-translate-y-0.5 hover:shadow-[0_4px_16px_-8px_rgba(255,102,0,0.55)]"
               >
                 {c.small_logo_thumb_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -73,7 +72,7 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
             setView("wall");
           }
         }}
-        className="self-start font-mono text-[9.5px] tracking-wider text-muted-foreground/70 transition-colors hover:text-primary disabled:pointer-events-none group-hover/tile:text-primary"
+        className="self-start font-mono text-[10px] tracking-[0.04em] text-muted-foreground transition-colors hover:text-primary group-hover:text-primary disabled:pointer-events-none"
       >
         {latestBatch ? `${total.toLocaleString()} from ${latestShort} →` : "—"}
       </button>

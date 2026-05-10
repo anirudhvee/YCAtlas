@@ -7,6 +7,7 @@ export const VIEW_IDS = [
   "overview",
   "globe",
   "timeline",
+  "compare",
   "wall",
   "heatmap",
   "boards",
@@ -71,6 +72,10 @@ interface UiStore {
   filters: FilterState;
   filterRevision: number;
   phrases: string[];
+  // Cohort batches for the Compare view. First entry is the baseline;
+  // every other entry is shown as a peer with deltas vs. baseline.
+  // Capped at 4. Stored as long-form (e.g. "Winter 2022").
+  compareBatches: string[];
   selectedCompany: Company | null;
   askOpen: boolean;
   timelineMetric: TimelineMetric;
@@ -81,6 +86,8 @@ interface UiStore {
   clearFilters: () => void;
   addPhrase: (p: string) => void;
   removePhrase: (p: string) => void;
+  setCompareBatches: (batches: string[]) => void;
+  toggleCompareBatch: (batch: string) => void;
   setSelectedCompany: (c: Company | null) => void;
   setAskOpen: (open: boolean) => void;
   toggleAsk: () => void;
@@ -88,6 +95,7 @@ interface UiStore {
     view?: ViewId;
     filters?: Partial<FilterState>;
     phrases?: string[];
+    compareBatches?: string[];
   }) => void;
 }
 
@@ -99,9 +107,15 @@ function getInitialState(): {
   view: ViewId;
   filters: FilterState;
   phrases: string[];
+  compareBatches: string[];
 } {
   if (typeof window === "undefined") {
-    return { view: "overview", filters: defaultFilters, phrases: [] };
+    return {
+      view: "overview",
+      filters: defaultFilters,
+      phrases: [],
+      compareBatches: [],
+    };
   }
   const decoded = decodeHash(window.location.hash.slice(1));
   const view: ViewId =
@@ -120,7 +134,12 @@ function getInitialState(): {
     teamSizeMax: decoded.teamSizeMax ?? null,
     search: decoded.search ?? null,
   };
-  return { view, filters, phrases: decoded.phrases ?? [] };
+  return {
+    view,
+    filters,
+    phrases: decoded.phrases ?? [],
+    compareBatches: decoded.compareBatches ?? [],
+  };
 }
 
 export const useUi = create<UiStore>((set) => ({
@@ -164,12 +183,35 @@ export const useUi = create<UiStore>((set) => ({
     }),
   removePhrase: (p) =>
     set((state) => ({ phrases: state.phrases.filter((x) => x !== p) })),
+  setCompareBatches: (batches) =>
+    set(() => ({ compareBatches: batches.slice(0, 4) })),
+  toggleCompareBatch: (batch) =>
+    set((state) => {
+      const idx = state.compareBatches.indexOf(batch);
+      if (idx >= 0) {
+        return {
+          compareBatches: state.compareBatches.filter((b) => b !== batch),
+        };
+      }
+      // Cap at 4. If full, drop the oldest peer (keep baseline + last 3).
+      if (state.compareBatches.length >= 4) {
+        return {
+          compareBatches: [
+            state.compareBatches[0],
+            ...state.compareBatches.slice(2),
+            batch,
+          ],
+        };
+      }
+      return { compareBatches: [...state.compareBatches, batch] };
+    }),
   setSelectedCompany: (c) => set({ selectedCompany: c }),
   hydrateFromUrl: (next) =>
     set(() => ({
       view: next.view ?? "overview",
       filters: { ...defaultFilters, ...(next.filters ?? {}) },
       phrases: next.phrases ?? [],
+      compareBatches: next.compareBatches ?? [],
       // intentionally do not bump filterRevision on hydration
     })),
 }));

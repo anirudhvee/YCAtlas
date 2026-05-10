@@ -166,33 +166,46 @@ export function Heatmap() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card/40 px-4 py-2 font-mono text-[11px]">
-        <span className="text-muted-foreground">rows:</span>
-        {ROW_OPTIONS.map((opt) => {
-          const active = axis === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => {
-                setAxis(opt.id);
-                setHover(null);
-              }}
-              className={cn(
-                "rounded border px-2 py-0.5 transition-colors",
-                active
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-              )}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-        <RampLegend max={data.max} />
+      <div className="border-b border-border px-5 pt-5 pb-3">
+        <div className="mx-auto max-w-[1480px]">
+          <div className="page-head">
+            <div>
+              <div className="eyebrow">
+                Heatmap · {data.cols.length} batches × {data.rowLabels.length}{" "}
+                rows
+              </div>
+              <h1>What gets built, when</h1>
+              <div className="sub">
+                Cell shade = company count. Click a cell to filter Atlas by
+                that batch and row; switch axes to slice differently.
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[11px]">
+            <span className="text-muted-foreground">rows:</span>
+            {ROW_OPTIONS.map((opt) => {
+              const active = axis === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setAxis(opt.id);
+                    setHover(null);
+                  }}
+                  aria-pressed={active}
+                  className={cn("pill-btn", active && "active")}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+            <RampLegend max={data.max} />
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-hidden p-4">
+      <div className="mx-auto w-full max-w-[1480px] flex-1 overflow-hidden px-5 py-5">
         {data.rowLabels.length === 0 || data.cols.length === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             Not enough data · refine filter

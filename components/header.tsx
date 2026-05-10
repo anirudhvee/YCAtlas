@@ -1,25 +1,43 @@
+"use client";
+
 import { ThemeToggle } from "./theme-toggle";
 import { AskTrigger } from "./ask-trigger";
+import { useUi } from "@/lib/store";
+import { useMounted } from "@/lib/use-mounted";
+import { VIEWS } from "@/lib/views";
 
 export function Header() {
+  const view = useUi((s) => s.view);
+  const mounted = useMounted();
+  const meta = VIEWS.find((v) => v.id === (mounted ? view : "overview"));
+
   return (
-    <header className="sticky top-0 z-40 flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-background/85 px-5 backdrop-blur">
-      <div className="font-mono text-[13px] font-semibold tracking-[0.22em] text-primary select-none">
-        YC ATLAS
+    <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-between border-b border-border bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <div className="flex items-center gap-3.5">
+        <span className="select-none font-mono text-[11.5px] font-semibold tracking-[0.22em] text-foreground">
+          YC&nbsp;ATLAS
+        </span>
+        <span className="divider-v" aria-hidden />
+        <div className="hidden items-center gap-2 font-mono text-[11px] sm:inline-flex">
+          <span className="text-muted-foreground">{meta?.group ?? "Explore"}</span>
+          <span className="text-faint">/</span>
+          <span className="text-foreground">{meta?.label ?? "Overview"}</span>
+        </div>
       </div>
       <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
         <div className="pointer-events-auto">
           <AskTrigger />
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1">
         <ThemeToggle />
+        <span className="divider-v mx-1" aria-hidden />
         <a
           href="https://github.com/anirudhvee/YCAtlas"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="GitHub repository"
-          className="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground"
+          className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground"
         >
           <GithubMark className="size-3.5" />
         </a>

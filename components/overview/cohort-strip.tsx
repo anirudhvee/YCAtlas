@@ -11,7 +11,7 @@ import {
   type BatchAggregate,
 } from "@/lib/overview-data";
 import { cn } from "@/lib/utils";
-import { ChartCard } from "./chart-card";
+import { ChartCard, StatPill } from "./chart-card";
 
 interface TooltipAnchor {
   agg: BatchAggregate;
@@ -40,10 +40,15 @@ export function CohortStrip() {
 
   const selected = mounted ? new Set(filters.batches) : new Set<string>();
   const hasSelection = selected.size > 0;
+  const selectedBatch =
+    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
+  const selectedAgg = selectedBatch
+    ? aggregates.find((a) => a.batch === selectedBatch)
+    : null;
 
   if (aggregates.length === 0) {
     return (
-      <ChartCard title="BATCHES" subtitle="Bar height = company count">
+      <ChartCard title="Batches" subtitle="Bar height = company count">
         <div className="flex h-20 items-center justify-center font-mono text-[10px] text-muted-foreground">
           Loading batches…
         </div>
@@ -54,6 +59,7 @@ export function CohortStrip() {
   const maxTotal = Math.max(...aggregates.map((a) => a.total));
   const first = aggregates[0];
   const last = aggregates[aggregates.length - 1];
+  const totalAll = aggregates.reduce((s, a) => s + a.total, 0);
 
   const handleEnter = (
     agg: BatchAggregate,
@@ -81,11 +87,24 @@ export function CohortStrip() {
 
   return (
     <ChartCard
-      title="BATCHES"
+      title="Batches"
       subtitle="Bar height = company count · click to filter"
+      headRight={
+        <>
+          <StatPill
+            label={selectedAgg ? selectedAgg.short : "All-time"}
+            value={(selectedAgg ? selectedAgg.total : totalAll).toLocaleString()}
+            hint="companies"
+          />
+          <StatPill label="Batches" value={aggregates.length} />
+        </>
+      }
     >
-      <div className="relative">
-        <div className="flex h-20 items-end gap-px">
+      <div className="relative flex flex-col gap-2">
+        <div
+          className="flex h-20 items-end gap-px"
+          onMouseLeave={handleLeave}
+        >
           {aggregates.map((agg) => {
             const isSelected = selected.has(agg.batch);
             return (
@@ -101,24 +120,22 @@ export function CohortStrip() {
                 onClick={() => handleClick(agg)}
                 style={{ height: `${(agg.total / maxTotal) * 100}%` }}
                 className={cn(
-                  "flex-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                  "flex-1 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                   isSelected
                     ? "bg-primary"
                     : hasSelection
-                      ? "bg-primary/20 hover:bg-primary/45"
-                      : "bg-primary/65 hover:bg-primary/85",
+                      ? "bg-primary/[0.18] hover:bg-primary/40"
+                      : "bg-primary/60 hover:bg-primary/95",
                 )}
               />
             );
           })}
         </div>
-      </div>
-      <div className="mt-2 flex items-center justify-center gap-3 font-mono text-[10px] tabular-nums text-muted-foreground">
-        <span>{first.short}</span>
-        <span className="opacity-50">·</span>
-        <span>{aggregates.length} batches</span>
-        <span className="opacity-50">·</span>
-        <span>{last.short}</span>
+        <div className="flex items-center justify-between font-mono text-[10px] tabular-nums text-muted-foreground">
+          <span>{first.short}</span>
+          <span className="text-faint">{aggregates.length} batches</span>
+          <span>{last.short}</span>
+        </div>
       </div>
       {anchor && <CohortTooltip anchor={anchor} />}
     </ChartCard>

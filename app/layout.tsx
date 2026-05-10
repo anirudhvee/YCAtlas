@@ -6,9 +6,10 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { AskPanel } from "@/components/ask-panel";
 import { CompaniesProvider } from "@/components/companies-provider";
+import { FilterChipBar } from "@/components/filter-chip-bar";
 import { HashSync } from "@/components/hash-sync";
 import { loadCompanies } from "@/lib/data";
-import { MIN_BATCH_SIZE } from "@/lib/overview-data";
+import { MIN_BATCH_SIZE, canonicalCount } from "@/lib/overview-data";
 import { batchToShort, batchToSortKey } from "@/lib/utils";
 
 const geistSans = Geist({
@@ -42,7 +43,7 @@ async function loadShellStats() {
       sorted.length > 0
         ? `${batchToShort(sorted[0])} – ${batchToShort(sorted[sorted.length - 1])}`
         : "—";
-    return { totalCompanies: companies.length, batchRange: range };
+    return { totalCompanies: canonicalCount(companies), batchRange: range };
   } catch {
     return { totalCompanies: 0, batchRange: "—" };
   }
@@ -74,6 +75,7 @@ export default async function RootLayout({
             <HashSync />
             <div className="flex h-screen flex-col">
               <Header />
+              <FilterChipBar />
               <div className="flex flex-1 overflow-hidden">
                 <Sidebar
                   totalCompanies={totalCompanies}

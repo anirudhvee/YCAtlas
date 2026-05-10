@@ -1,8 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import { useCompanies } from "@/components/companies-provider";
 import { useFilteredCompanies, useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
+import {
+  aggregatesAboveMinSize,
+  aggregatesExcludingUnspecified,
+  aggregateByBatch,
+  batchYearSpan,
+  canonicalCount,
+} from "@/lib/overview-data";
 import { CohortStrip } from "./cohort-strip";
 import { GrowthChart } from "./growth-chart";
 import { CompositionChart } from "./composition-chart";
@@ -17,27 +25,51 @@ export function Overview() {
   const filters = useUi((s) => s.filters);
   const mounted = useMounted();
 
-  // Time-series charts use the full set + a selectedBatch reference line;
-  // list/grid views use the filtered set so they narrow on selection.
+  const aggregates = useMemo(
+    () =>
+      aggregatesAboveMinSize(
+        aggregatesExcludingUnspecified(aggregateByBatch(all)),
+      ),
+    [all],
+  );
+  const canonicalTotal = useMemo(() => canonicalCount(all), [all]);
+  const yearSpan = useMemo(() => batchYearSpan(all), [all]);
+
   const listGridCompanies = mounted ? filtered : all;
   const selectedBatch =
     mounted && filters.batches.length === 1 ? filters.batches[0] : null;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="flex flex-col gap-6 p-6">
-        <CohortStrip />
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <GrowthChart companies={all} selectedBatch={selectedBatch} />
-          <CompositionChart companies={all} selectedBatch={selectedBatch} />
+    <div className="scroll-fine h-full overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+        <div className="page-head">
+          <div>
+            <div className="eyebrow">
+              Overview · {canonicalTotal.toLocaleString()} companies
+            </div>
+            <h1>The shape of Y Combinator</h1>
+            <div className="sub">
+              {yearSpan > 0 ? `${yearSpan} years, ` : ""}
+              {aggregates.length} batches, one accent color. Click a bar to
+              filter the deck.
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <DialectTile companies={all} />
-          <AiTile companies={all} selectedBatch={selectedBatch} />
-          <RecentBatchLogosTile companies={listGridCompanies} />
-          <BuzzwordsTile companies={all} selectedBatch={selectedBatch} />
+        <div className="mt-4 flex flex-col gap-[18px]">
+          <CohortStrip />
+
+          <div className="grid grid-cols-1 gap-[14px] lg:grid-cols-2">
+            <GrowthChart companies={all} selectedBatch={selectedBatch} />
+            <CompositionChart companies={all} selectedBatch={selectedBatch} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-[14px] md:grid-cols-2 lg:grid-cols-4">
+            <DialectTile companies={all} />
+            <AiTile companies={all} selectedBatch={selectedBatch} />
+            <RecentBatchLogosTile companies={listGridCompanies} />
+            <BuzzwordsTile companies={all} selectedBatch={selectedBatch} />
+          </div>
         </div>
       </div>
     </div>

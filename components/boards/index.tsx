@@ -121,8 +121,19 @@ export function Boards() {
   }, [all, mounted, filters]);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="scroll-fine h-full overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+        <div className="page-head">
+          <div>
+            <div className="eyebrow">Boards · all-time leaderboards</div>
+            <h1>Who&apos;s on top</h1>
+            <div className="sub">
+              Six all-time leaderboards. They ignore the active filters; click
+              a row to filter the rest of Atlas.
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-[14px] md:grid-cols-2 lg:grid-cols-3">
         <TopBatchesBoard
           rows={data.topBatches}
           activeBatches={data.activeBatches}
@@ -152,6 +163,7 @@ export function Boards() {
           activeBatches={data.activeBatches}
           onSelect={(b) => setFilters({ batches: [b] })}
         />
+        </div>
       </div>
     </div>
   );
@@ -167,7 +179,7 @@ function BoardCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-[280px] flex-col rounded border border-border bg-card p-3.5">
+    <div className="flex h-[290px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
           {title}
@@ -178,7 +190,7 @@ function BoardCard({
           </div>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <div className="scroll-fine min-h-0 flex-1 overflow-y-auto">{children}</div>
     </div>
   );
 }
@@ -256,7 +268,7 @@ function TopBatchesBoard({
   const max = rows[0]?.pctTopCompany ?? 1;
   return (
     <BoardCard
-      title="Most decorated batches · % top YC"
+      title="Most decorated batches · % top company"
       caption="batches ≥5y old"
     >
       <div className="flex flex-col gap-px">
@@ -289,7 +301,7 @@ function LargestBoard({
 }) {
   const max = rows[0]?.team_size ?? 1;
   return (
-    <BoardCard title="Largest companies by team size" caption="• by status">
+    <BoardCard title="Largest companies by team size" caption="dot color = status">
       <div className="flex flex-col gap-1">
         {rows.length === 0 ? (
           <Empty msg="No companies match" />
@@ -530,8 +542,8 @@ function LongestRunningBoard({
   const maxSurvival = Math.max(1, ...survivalPcts);
   return (
     <BoardCard
-      title="Old batches · survival rate"
-      caption="oldest 12 cohorts"
+      title="Mature batches · survival rate"
+      caption="oldest 12 batches"
     >
       <div className="flex flex-col gap-px">
         {rows.length === 0 ? (

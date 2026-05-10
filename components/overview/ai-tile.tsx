@@ -25,12 +25,17 @@ interface Props {
 export function AiTile({ companies, selectedBatch }: Props) {
   const setView = useUi((s) => s.setView);
 
-  const { data, inflection, last } = useMemo(() => {
+  const { data, inflection, last, deltaShortWindow } = useMemo(() => {
     const series = aiShareSeries(companies);
+    const lastRow = series.length > 0 ? series[series.length - 1] : null;
+    const fiveBack =
+      series.length > 5 ? series[series.length - 6] : series[0] ?? null;
     return {
       data: series,
       inflection: findAiInflection(series),
-      last: series.length > 0 ? series[series.length - 1] : null,
+      last: lastRow,
+      deltaShortWindow:
+        lastRow && fiveBack ? lastRow.pct - fiveBack.pct : null,
     };
   }, [companies]);
 
@@ -39,12 +44,25 @@ export function AiTile({ companies, selectedBatch }: Props) {
 
   return (
     <Tile
-      header="Where AI ate YC"
-      footer="buzzwords →"
+      title="Where AI ate YC"
+      meta="share of cohort"
+      footer={<>buzzwords →</>}
       onClick={() => setView("buzzwords")}
     >
       <div className="flex h-full flex-col gap-1.5">
-        <div className="min-h-0 flex-1">
+        {last && (
+          <div className="flex items-baseline gap-1.5 font-mono">
+            <span className="text-[26px] font-medium tracking-[-0.01em] tabular-nums text-foreground leading-none">
+              {last.pct.toFixed(0)}%
+            </span>
+            {deltaShortWindow !== null && (
+              <span className="text-[10.5px] text-primary">
+                ▲ {deltaShortWindow.toFixed(0)} pts vs 5 batches ago
+              </span>
+            )}
+          </div>
+        )}
+        <div className="-mt-0.5 min-h-0 flex-1">
           {data.length === 0 ? (
             <div className="grid h-full place-items-center font-mono text-[10px] text-muted-foreground">
               No data
@@ -79,7 +97,7 @@ export function AiTile({ companies, selectedBatch }: Props) {
                   <ReferenceLine
                     x={inflectionShort}
                     stroke="var(--foreground)"
-                    strokeOpacity={0.5}
+                    strokeOpacity={0.45}
                     strokeDasharray="2 3"
                     strokeWidth={1}
                     ifOverflow="extendDomain"
@@ -105,23 +123,8 @@ export function AiTile({ companies, selectedBatch }: Props) {
             </ResponsiveContainer>
           )}
         </div>
-        <div className="font-mono text-[10px] tabular-nums">
-          {last && inflection ? (
-            <>
-              <span className="text-foreground">{last.pct.toFixed(0)}%</span>
-              <span className="text-muted-foreground">
-                {" "}
-                in {last.short} · jump {inflection.short}
-              </span>
-            </>
-          ) : last ? (
-            <>
-              <span className="text-foreground">{last.pct.toFixed(0)}%</span>
-              <span className="text-muted-foreground"> in {last.short}</span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">No data</span>
-          )}
+        <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
+          jump in {inflectionShort ?? "—"}
         </div>
       </div>
     </Tile>

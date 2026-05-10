@@ -13,6 +13,7 @@ import {
   CITY_COORDS,
   MIN_BATCH_SIZE,
   STATUS_COLORS,
+  canonicalCompanies,
   extractCity,
 } from "@/lib/overview-data";
 import { batchToShort, batchToSortKey } from "@/lib/utils";
@@ -150,17 +151,14 @@ export function GlobeView() {
       city: string;
       count: number;
       topCount: number;
-      statusCounts: Record<string, number>;
       maxTeam: number;
       maxTeamStatus: CityDot["dominantStatus"];
       representative: Company;
     }
     const map = new Map<string, Bucket>();
-    for (const c of filtered) {
-      if (c.batch !== "Unspecified") {
-        const k = batchToSortKey(c.batch);
-        if (Number.isFinite(k) && k > maxBatchSortKey) continue;
-      }
+    for (const c of canonicalCompanies(filtered)) {
+      const k = batchToSortKey(c.batch);
+      if (Number.isFinite(k) && k > maxBatchSortKey) continue;
       const city = extractCity(c.all_locations);
       if (!city) continue;
       const coord = CITY_COORDS[city];
@@ -173,7 +171,6 @@ export function GlobeView() {
           city,
           count: 0,
           topCount: 0,
-          statusCounts: {},
           maxTeam: 0,
           maxTeamStatus: "Active",
           representative: c,
@@ -182,7 +179,6 @@ export function GlobeView() {
       }
       b.count++;
       if (c.top_company === true) b.topCount++;
-      b.statusCounts[c.status] = (b.statusCounts[c.status] ?? 0) + 1;
       const ts = c.team_size ?? 0;
       if (ts > b.maxTeam) {
         b.maxTeam = ts;
@@ -208,10 +204,6 @@ export function GlobeView() {
   }, [filtered, maxBatchSortKey]);
 
   const totalDots = dots.reduce((s, d) => s + d.count, 0);
-
-  const topCities = useMemo(() => {
-    return [...dots].sort((a, b) => b.count - a.count).slice(0, 6);
-  }, [dots]);
 
   const topRings = useMemo<TopRing[]>(() => {
     return dots
@@ -348,7 +340,7 @@ export function GlobeView() {
               <div style="display:flex;justify-content:space-between;gap:12px"><span>${escapeHtml(
                 x.city,
               )}</span><span>${x.count}</span></div>
-              ${x.topCount > 0 ? `<div style="color:${theme.primary};margin-top:3px">${x.topCount} top YC</div>` : ""}
+              ${x.topCount > 0 ? `<div style="color:${theme.primary};margin-top:3px">${x.topCount} top company</div>` : ""}
             </div>`;
           }}
           onPointClick={(point: object) => {
@@ -367,41 +359,21 @@ export function GlobeView() {
         />
       )}
 
-      <div className="pointer-events-none absolute right-4 top-4 flex flex-col items-end gap-0.5 font-mono text-[10px] tabular-nums">
-        <span className="uppercase tracking-[0.2em] text-muted-foreground">
-          on globe
-        </span>
+      <div className="pointer-events-none absolute right-3 top-3 rounded-md border border-border bg-card/85 px-2 py-1 font-mono text-[10px] tabular-nums backdrop-blur">
+        <span className="text-muted-foreground">on globe </span>
         <span className="text-foreground">
-          {totalDots.toLocaleString()} companies
+          {totalDots.toLocaleString()}
         </span>
         <span className="text-muted-foreground">
-          {dots.length.toLocaleString()} cities
+          {" "}
+          · {dots.length.toLocaleString()} cities
         </span>
       </div>
 
-      {topCities.length > 0 && (
-        <div className="pointer-events-none absolute left-4 top-4 flex flex-col gap-1 font-mono text-[10px] tabular-nums">
-          <span className="uppercase tracking-[0.2em] text-muted-foreground">
-            Top cities
-          </span>
-          {topCities.map((c) => (
-            <div
-              key={c.city}
-              className="flex items-baseline gap-3 text-foreground/90"
-            >
-              <span className="min-w-[140px] truncate">{c.city}</span>
-              <span className="ml-auto text-muted-foreground">
-                {c.count.toLocaleString()}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-20 flex flex-col items-center gap-2 px-4 font-mono text-[10px] tabular-nums">
-        <div className="pointer-events-auto flex w-full max-w-[520px] flex-col gap-1">
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center px-3 font-mono text-[10px] tabular-nums">
+        <div className="pointer-events-auto flex w-full max-w-[520px] flex-col gap-1 rounded-md border border-border bg-card/85 px-3 py-2 backdrop-blur">
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="uppercase tracking-[0.2em]">through</span>
+            <span className="uppercase tracking-[0.18em]">through</span>
             <span className="text-primary">{sliderLabel}</span>
           </div>
           <input
@@ -424,17 +396,6 @@ export function GlobeView() {
                 : ""}
             </span>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-muted-foreground">
-          {(["Active", "Acquired", "Public", "Inactive"] as const).map((k) => (
-            <span key={k} className="flex items-center gap-1">
-              <span
-                className="size-1.5 rounded-full"
-                style={{ backgroundColor: STATUS_COLORS[k] }}
-              />
-              {k}
-            </span>
-          ))}
         </div>
       </div>
     </div>

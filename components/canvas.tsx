@@ -7,7 +7,7 @@ import { Buzzwords } from "@/components/buzzwords";
 import { Boards } from "@/components/boards";
 import { Globe } from "@/components/globe";
 import { Timeline } from "@/components/timeline";
-import { FilterChipBar } from "@/components/filter-chip-bar";
+import { Compare } from "@/components/compare";
 import { DetailDrawer } from "@/components/detail-drawer";
 import { useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
@@ -20,7 +20,6 @@ export function Canvas() {
 
   return (
     <div className="flex h-full flex-col">
-      <FilterChipBar />
       <div className="min-h-0 flex-1">
         {effectiveView === "overview" ? (
           <Overview />
@@ -36,6 +35,8 @@ export function Canvas() {
           <Globe />
         ) : effectiveView === "timeline" ? (
           <Timeline />
+        ) : effectiveView === "compare" ? (
+          <Compare />
         ) : (
           <ViewPlaceholder view={effectiveView} />
         )}

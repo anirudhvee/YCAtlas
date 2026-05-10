@@ -10,6 +10,8 @@ const VIEW_DESCRIPTIONS: Record<(typeof VIEW_IDS)[number], string> = {
   globe: "3D rotating globe with one dot per city sized by company count.",
   timeline:
     "Stacked area + 100% stacked area charts of company outcomes over time, pickable metric.",
+  compare:
+    "Cohort-vs-cohort view. Pick 2-4 batches; KPI grid + outcome / region / theme / industry mix bars + insight strip with deltas vs the baseline batch.",
   wall: "Logo grid (capped at 300) of companies. Narrows with filters.",
   heatmap:
     "Density grid: rows are industry / tag / region, columns are batches.",

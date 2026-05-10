@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useCompanies } from "@/components/companies-provider";
+import { useMemo } from "react";
 import {
   defaultFilters,
   isFilteringActive,
@@ -9,11 +10,14 @@ import {
   useUi,
 } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
+import { canonicalCompanies } from "@/lib/overview-data";
 import { batchToShort, cn } from "@/lib/utils";
 
 interface Chip {
   key: string;
-  label: string;
+  k: string;
+  v: string;
+  marker?: boolean;
   onRemove: () => void;
 }
 
@@ -29,6 +33,12 @@ export function FilterChipBar() {
   const effective = mounted ? filters : defaultFilters;
   const active = isFilteringActive(effective);
 
+  const canonical = useMemo(() => canonicalCompanies(companies), [companies]);
+  const canonicalKeys = useMemo(
+    () => new Set(canonical.map((c) => c.id)),
+    [canonical],
+  );
+
   if (!active) return null;
 
   const chips: Chip[] = [];
@@ -36,138 +46,144 @@ export function FilterChipBar() {
   for (const s of effective.status) {
     chips.push({
       key: `s:${s}`,
-      label: `status: ${s}`,
+      k: "status",
+      v: s,
       onRemove: () => toggleArrayFilter("status", s),
     });
   }
   for (const b of effective.batches) {
     chips.push({
       key: `b:${b}`,
-      label: `batches: ${batchToShort(b)}`,
+      k: "batch",
+      v: batchToShort(b),
+      marker: true,
       onRemove: () => toggleArrayFilter("batches", b),
     });
   }
   for (const i of effective.industries) {
     chips.push({
       key: `i:${i}`,
-      label: `industries: ${i}`,
+      k: "industry",
+      v: i,
       onRemove: () => toggleArrayFilter("industries", i),
     });
   }
   for (const t of effective.tags) {
     chips.push({
       key: `t:${t}`,
-      label: `tags: ${t}`,
+      k: "tag",
+      v: t,
       onRemove: () => toggleArrayFilter("tags", t),
     });
   }
   for (const r of effective.regions) {
     chips.push({
       key: `r:${r}`,
-      label: `regions: ${r}`,
+      k: "region",
+      v: r,
       onRemove: () => toggleArrayFilter("regions", r),
     });
   }
   for (const g of effective.stage) {
     chips.push({
       key: `g:${g}`,
-      label: `stage: ${g}`,
+      k: "stage",
+      v: g,
       onRemove: () => toggleArrayFilter("stage", g),
     });
   }
   if (effective.top_company !== null) {
     chips.push({
       key: "top",
-      label: `top: ${effective.top_company}`,
+      k: "top",
+      v: String(effective.top_company),
       onRemove: () => setFilters({ top_company: null }),
     });
   }
   if (effective.hasFormerNames !== null) {
     chips.push({
       key: "fn",
-      label: `formerNames: ${effective.hasFormerNames}`,
+      k: "renamed",
+      v: String(effective.hasFormerNames),
       onRemove: () => setFilters({ hasFormerNames: null }),
     });
   }
   if (effective.isHiring !== null) {
     chips.push({
       key: "h",
-      label: `isHiring: ${effective.isHiring}`,
+      k: "hiring",
+      v: String(effective.isHiring),
       onRemove: () => setFilters({ isHiring: null }),
     });
   }
   if (effective.teamSizeMin !== null) {
     chips.push({
       key: "tmin",
-      label: `team ≥ ${effective.teamSizeMin}`,
+      k: "team ≥",
+      v: String(effective.teamSizeMin),
       onRemove: () => setFilters({ teamSizeMin: null }),
     });
   }
   if (effective.teamSizeMax !== null) {
     chips.push({
       key: "tmax",
-      label: `team ≤ ${effective.teamSizeMax}`,
+      k: "team ≤",
+      v: String(effective.teamSizeMax),
       onRemove: () => setFilters({ teamSizeMax: null }),
     });
   }
   if (effective.search) {
     chips.push({
       key: "q",
-      label: `search: ${effective.search}`,
+      k: "search",
+      v: effective.search,
       onRemove: () => setFilters({ search: null }),
     });
   }
 
-  const total = mounted ? companies.length : 0;
-  const filteredCount = mounted ? filtered.length : 0;
+  const total = mounted ? canonical.length : 0;
+  const filteredCount = mounted
+    ? filtered.filter((c) => canonicalKeys.has(c.id)).length
+    : 0;
 
   return (
-    <div className="sticky top-0 z-20 flex flex-wrap items-center gap-1.5 border-b border-border bg-card/95 px-4 py-2 font-mono text-[11px] backdrop-blur">
+    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card px-4 py-2 font-mono text-[11.5px]">
       {chips.map((c) => (
-        <FilterChip key={c.key} label={c.label} onRemove={c.onRemove} />
+        <span
+          key={c.key}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border bg-background py-[2px] pl-[9px] pr-1 leading-none",
+            c.marker
+              ? "border-[color:var(--primary-line)]"
+              : "border-border",
+          )}
+        >
+          <span className={c.marker ? "text-primary" : "text-faint"}>{c.k}</span>
+          <span className="text-foreground">{c.v}</span>
+          <button
+            type="button"
+            onClick={c.onRemove}
+            aria-label={`Remove ${c.k}: ${c.v}`}
+            className="grid size-4 place-items-center rounded-full text-faint transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground"
+          >
+            <X className="size-2.5" strokeWidth={2.25} />
+          </button>
+        </span>
       ))}
-      <div className="ml-auto flex items-center gap-3">
-        <span className="tabular-nums text-muted-foreground">
+      <div className="ml-auto flex items-center gap-2.5 text-muted-foreground">
+        <span className="tabular-nums">
           {filteredCount.toLocaleString()} / {total.toLocaleString()} matching
         </span>
         <button
           type="button"
           onClick={clearFilters}
           aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
-          title={`Reset all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
-          className="inline-flex items-center gap-1 rounded border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-destructive transition-colors hover:border-destructive/60 hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+          className="inline-flex h-[22px] items-center gap-1.5 rounded-full border border-border px-2 text-muted-foreground transition-colors hover:border-[color:var(--border-strong)] hover:bg-[color:var(--bg-soft)] hover:text-foreground"
         >
-          <X className="size-3" strokeWidth={2.5} aria-hidden />
-          <span>clear filters</span>
-          <span className="tabular-nums opacity-70">({chips.length})</span>
+          <X className="size-2.5" strokeWidth={2.25} />
+          <span>clear ({chips.length})</span>
         </button>
       </div>
     </div>
-  );
-}
-
-function FilterChip({
-  label,
-  onRemove,
-}: {
-  label: string;
-  onRemove: () => void;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded border border-primary/40 bg-primary/10 px-2 py-0.5 text-primary",
-      )}
-    >
-      <span>{label}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        aria-label={`Remove ${label}`}
-        className="text-primary/70 transition-colors hover:text-primary"
-      >
-        ×
-      </button>
-    </span>
   );
 }
