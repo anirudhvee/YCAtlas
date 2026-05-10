@@ -126,9 +126,14 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "cv11";
+    /* Lock body scroll: nothing outside the dvh shell should scroll. */
+    overflow: hidden;
+    overscroll-behavior: none;
   }
   html {
     @apply font-sans;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -388,8 +393,10 @@
   transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 140ms;
 }
 
-/* Auto-hiding scrollbar: invisible until the container is hovered. */
-.scroll-fine { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+/* Auto-hiding scrollbar: invisible until the container is hovered.
+   overscroll-behavior contains scroll chains so reaching the end
+   doesn't bubble up and trigger body rubber-banding on iOS. */
+.scroll-fine { scrollbar-width: thin; scrollbar-color: transparent transparent; overscroll-behavior: contain; }
 .scroll-fine:hover { scrollbar-color: var(--border-strong) transparent; }
 .scroll-fine::-webkit-scrollbar { width: 10px; height: 10px; }
 .scroll-fine::-webkit-scrollbar-track { background: transparent; }
