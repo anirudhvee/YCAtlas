@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -8,7 +9,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { AskPanel } from "@/components/ask-panel";
 import { CompaniesProvider } from "@/components/companies-provider";
 import { FilterChipBar } from "@/components/filter-chip-bar";
-import { HashSync } from "@/components/hash-sync";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { loadCompanies } from "@/lib/data";
 import { MIN_BATCH_SIZE, canonicalCount } from "@/lib/overview-data";
 import { batchToShort, batchToSortKey } from "@/lib/utils";
@@ -35,6 +36,7 @@ export const metadata: Metadata = {
 };
 
 async function loadShellStats() {
+  "use cache";
   try {
     const companies = await loadCompanies();
     const counts = new Map<string, number>();
@@ -78,27 +80,32 @@ export default async function RootLayout({
           />
         )}
         <ThemeProvider>
-          <CompaniesProvider>
-            <HashSync />
-            <div className="flex h-screen flex-col">
-              <Header />
-              <FilterChipBar />
-              <div className="flex flex-1 overflow-hidden">
-                <Sidebar
+          <NuqsAdapter>
+            <CompaniesProvider>
+              <div className="flex h-screen flex-col">
+                <Header />
+                <Suspense fallback={null}>
+                  <FilterChipBar />
+                </Suspense>
+                <div className="flex flex-1 overflow-hidden">
+                  <Sidebar
+                    totalCompanies={totalCompanies}
+                    batchRange={batchRange}
+                  />
+                  <main className="relative flex-1 overflow-hidden">
+                    {children}
+                    <Suspense fallback={null}>
+                      <AskPanel />
+                    </Suspense>
+                  </main>
+                </div>
+                <BottomNav
                   totalCompanies={totalCompanies}
                   batchRange={batchRange}
                 />
-                <main className="relative flex-1 overflow-hidden">
-                  {children}
-                  <AskPanel />
-                </main>
               </div>
-              <BottomNav
-                totalCompanies={totalCompanies}
-                batchRange={batchRange}
-              />
-            </div>
-          </CompaniesProvider>
+            </CompaniesProvider>
+          </NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>

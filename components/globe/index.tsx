@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies } from "@/lib/store";
+import { useFilteredCompanies } from "@/lib/url-state";
 import {
   STATUS_COLORS,
   canonicalCompanies,

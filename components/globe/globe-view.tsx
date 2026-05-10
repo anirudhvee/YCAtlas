@@ -7,7 +7,8 @@ import { MeshBasicMaterial, Color } from "three";
 import countriesTopology from "world-atlas/countries-110m.json";
 import { useTheme } from "next-themes";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies, useUi } from "@/lib/store";
+import { useUi } from "@/lib/store";
+import { useFilteredCompanies } from "@/lib/url-state";
 import type { Company } from "@/lib/types";
 import {
   CITY_COORDS,

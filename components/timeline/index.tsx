@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { useCompanies } from "@/components/companies-provider";
 import { filterCompanies, useUi, type TimelineMetric } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useFilters } from "@/lib/url-state";
 import {
   MIN_BATCH_SIZE,
   STATUS_COLORS,
@@ -365,10 +365,9 @@ function buildFates(buckets: BatchBucket[]): FateRow[] {
 
 export function Timeline() {
   const all = useCompanies();
-  const filters = useUi((s) => s.filters);
+  const { filters } = useFilters();
   const metric = useUi((s) => s.timelineMetric);
   const setMetric = useUi((s) => s.setTimelineMetric);
-  const mounted = useMounted();
 
   // Time-series view: strip the batches filter so the selected
   // batch shows as a ReferenceLine instead of collapsing the chart.
@@ -385,7 +384,7 @@ export function Timeline() {
   const fates = useMemo(() => buildFates(buckets), [buckets]);
 
   const selectedBatch =
-    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
+    filters.batches.length === 1 ? filters.batches[0] : null;
 
   const tickInterval = Math.max(0, Math.floor(series.rows.length / 10) - 1);
 

@@ -11,7 +11,7 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import { useUi } from "@/lib/store";
+import { useView } from "@/lib/url-state";
 import { aiShareSeries, findAiInflection } from "@/lib/overview-data";
 import type { Company } from "@/lib/types";
 import { batchToShort } from "@/lib/utils";
@@ -23,7 +23,7 @@ interface Props {
 }
 
 export function AiTile({ companies, selectedBatch }: Props) {
-  const setView = useUi((s) => s.setView);
+  const [, setView] = useView();
 
   const { data, inflection, last, deltaShortWindow } = useMemo(() => {
     const series = aiShareSeries(companies);

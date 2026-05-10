@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { useUi } from "@/lib/store";
+import { useNavigateToView, usePhrases, useView } from "@/lib/url-state";
 import { latestCohortDialect } from "@/lib/overview-data";
 import type { Company } from "@/lib/types";
 import { batchToShort, cn } from "@/lib/utils";
 
 export function DialectTile({ companies }: { companies: Company[] }) {
-  const setView = useUi((s) => s.setView);
-  const addPhrase = useUi((s) => s.addPhrase);
+  const [, setView] = useView();
+  const { phrases } = usePhrases();
+  const navigateToView = useNavigateToView();
 
   const { batch, words, total } = useMemo(
     () => latestCohortDialect(companies, 6),
@@ -18,8 +19,13 @@ export function DialectTile({ companies }: { companies: Company[] }) {
   const short = batch ? batchToShort(batch) : "—";
 
   const open = (word: string) => {
-    addPhrase(word);
-    setView("buzzwords");
+    const trimmed = word.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    const nextPhrases = phrases.some((p) => p.toLowerCase() === key)
+      ? phrases
+      : [...phrases, trimmed];
+    navigateToView("buzzwords", { phrases: nextPhrases });
   };
 
   return (

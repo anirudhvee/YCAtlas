@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUi } from "@/lib/store";
+import { useView } from "@/lib/url-state";
 import { useMounted } from "@/lib/use-mounted";
 import { VIEW_GROUPS, VIEWS, type ViewMeta } from "@/lib/views";
 import type { ViewId } from "@/lib/store";
@@ -26,9 +26,7 @@ interface Props {
 }
 
 export function BottomNav({ totalCompanies, batchRange }: Props) {
-  const view = useUi((s) => s.view);
-  const setView = useUi((s) => s.setView);
-  const mounted = useMounted();
+  const [view, setView] = useView();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const primary = useMemo(
@@ -39,8 +37,7 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
     [],
   );
 
-  const moreActive =
-    mounted && !PRIMARY_VIEW_IDS.includes(view as ViewId);
+  const moreActive = !PRIMARY_VIEW_IDS.includes(view);
 
   return (
     <>
@@ -50,7 +47,7 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
         style={{ paddingTop: 4 }}
       >
         {primary.map(({ id, label, icon: Icon }) => {
-          const active = mounted && view === id;
+          const active = view === id;
           return (
             <button
               key={id}
@@ -114,7 +111,7 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
           setView(id);
           setMoreOpen(false);
         }}
-        currentView={mounted ? view : "overview"}
+        currentView={view}
         totalCompanies={totalCompanies}
         batchRange={batchRange}
       />

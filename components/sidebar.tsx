@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useView } from "@/lib/url-state";
 import { VIEW_GROUPS, VIEWS } from "@/lib/views";
 import { StatsCard } from "@/components/stats-card";
 
@@ -13,9 +12,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
-  const view = useUi((s) => s.view);
-  const setView = useUi((s) => s.setView);
-  const mounted = useMounted();
+  const [view, setView] = useView();
 
   // Keyboard shortcuts 1..8 for views (kbd value lives in lib/views.ts)
   useEffect(() => {
@@ -39,7 +36,7 @@ export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
               {group}
             </div>
             {items.map(({ id, label, icon: Icon, kbd }) => {
-              const active = mounted && id === view;
+              const active = id === view;
               return (
                 <button
                   key={id}

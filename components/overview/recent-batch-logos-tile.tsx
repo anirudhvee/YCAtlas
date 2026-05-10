@@ -2,13 +2,13 @@
 
 import { useMemo } from "react";
 import { useUi } from "@/lib/store";
+import { useNavigateToView } from "@/lib/url-state";
 import { findLatestBatch } from "@/lib/overview-data";
 import { batchToShort } from "@/lib/utils";
 import type { Company } from "@/lib/types";
 
 export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
-  const setView = useUi((s) => s.setView);
-  const setFilters = useUi((s) => s.setFilters);
+  const navigateToView = useNavigateToView();
   const setSelectedCompany = useUi((s) => s.setSelectedCompany);
 
   const { latestBatch, latestShort, logos, total } = useMemo(() => {
@@ -68,8 +68,7 @@ export function RecentBatchLogosTile({ companies }: { companies: Company[] }) {
         disabled={!latestBatch}
         onClick={() => {
           if (latestBatch) {
-            setFilters({ batches: [latestBatch] });
-            setView("wall");
+            navigateToView("wall", { filters: { batches: [latestBatch] } });
           }
         }}
         className="self-start font-mono text-[10px] tracking-[0.04em] text-muted-foreground transition-colors hover:text-primary group-hover:text-primary disabled:pointer-events-none"

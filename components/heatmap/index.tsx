@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies, useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useFilters, useFilteredCompanies } from "@/lib/url-state";
 import { batchToShort, batchToSortKey, cn } from "@/lib/utils";
 import { MIN_BATCH_SIZE } from "@/lib/overview-data";
 import type { Company } from "@/lib/types";
@@ -114,9 +113,7 @@ interface HoverState {
 export function Heatmap() {
   const all = useCompanies();
   const filtered = useFilteredCompanies(all);
-  const filters = useUi((s) => s.filters);
-  const setFilters = useUi((s) => s.setFilters);
-  const mounted = useMounted();
+  const { filters, setFilters } = useFilters();
 
   const [axis, setAxis] = useState<RowAxis>("industry");
   const [hover, setHover] = useState<HoverState | null>(null);
@@ -127,7 +124,7 @@ export function Heatmap() {
   );
 
   const selectedBatch =
-    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
+    filters.batches.length === 1 ? filters.batches[0] : null;
 
   const activeRow =
     axis === "industry" && filters.industries.length === 1

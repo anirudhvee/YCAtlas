@@ -1,7 +1,5 @@
-import { useMemo } from "react";
 import { create } from "zustand";
 import type { Company } from "./types";
-import { decodeHash } from "./url-state";
 
 export const VIEW_IDS = [
   "overview",
@@ -15,6 +13,18 @@ export const VIEW_IDS = [
 ] as const;
 
 export type ViewId = (typeof VIEW_IDS)[number];
+
+// Kept in this non-"use client" module so the [view] route's
+// `generateStaticParams` can import it at build time.
+export const NON_OVERVIEW_VIEWS: readonly Exclude<ViewId, "overview">[] = [
+  "globe",
+  "timeline",
+  "compare",
+  "wall",
+  "heatmap",
+  "boards",
+  "buzzwords",
+];
 
 export const TIMELINE_METRICS = [
   "status",
@@ -68,152 +78,23 @@ export type ArrayFilterKey =
   | "stage";
 
 interface UiStore {
-  view: ViewId;
-  filters: FilterState;
-  filterRevision: number;
-  phrases: string[];
-  // Cohort batches for the Compare view. First entry is the baseline;
-  // every other entry is shown as a peer with deltas vs. baseline.
-  // Capped at 4. Stored as long-form (e.g. "Winter 2022").
-  compareBatches: string[];
   selectedCompany: Company | null;
   askOpen: boolean;
   timelineMetric: TimelineMetric;
   setTimelineMetric: (m: TimelineMetric) => void;
-  setView: (view: ViewId) => void;
-  setFilters: (patch: Partial<FilterState>) => void;
-  toggleArrayFilter: (key: ArrayFilterKey, value: string) => void;
-  clearFilters: () => void;
-  addPhrase: (p: string) => void;
-  removePhrase: (p: string) => void;
-  setCompareBatches: (batches: string[]) => void;
-  toggleCompareBatch: (batch: string) => void;
   setSelectedCompany: (c: Company | null) => void;
   setAskOpen: (open: boolean) => void;
   toggleAsk: () => void;
-  hydrateFromUrl: (next: {
-    view?: ViewId;
-    filters?: Partial<FilterState>;
-    phrases?: string[];
-    compareBatches?: string[];
-  }) => void;
-}
-
-function isViewId(v: string): v is ViewId {
-  return (VIEW_IDS as readonly string[]).includes(v);
-}
-
-function getInitialState(): {
-  view: ViewId;
-  filters: FilterState;
-  phrases: string[];
-  compareBatches: string[];
-} {
-  if (typeof window === "undefined") {
-    return {
-      view: "overview",
-      filters: defaultFilters,
-      phrases: [],
-      compareBatches: [],
-    };
-  }
-  const decoded = decodeHash(window.location.hash.slice(1));
-  const view: ViewId =
-    decoded.view && isViewId(decoded.view) ? decoded.view : "overview";
-  const filters: FilterState = {
-    status: decoded.status ?? [],
-    batches: decoded.batches ?? [],
-    industries: decoded.industries ?? [],
-    tags: decoded.tags ?? [],
-    regions: decoded.regions ?? [],
-    stage: decoded.stage ?? [],
-    top_company: decoded.top_company ?? null,
-    hasFormerNames: decoded.hasFormerNames ?? null,
-    isHiring: decoded.isHiring ?? null,
-    teamSizeMin: decoded.teamSizeMin ?? null,
-    teamSizeMax: decoded.teamSizeMax ?? null,
-    search: decoded.search ?? null,
-  };
-  return {
-    view,
-    filters,
-    phrases: decoded.phrases ?? [],
-    compareBatches: decoded.compareBatches ?? [],
-  };
 }
 
 export const useUi = create<UiStore>((set) => ({
-  ...getInitialState(),
-  filterRevision: 0,
   selectedCompany: null,
   askOpen: false,
   timelineMetric: "status",
   setTimelineMetric: (m) => set({ timelineMetric: m }),
   setAskOpen: (open) => set({ askOpen: open }),
   toggleAsk: () => set((state) => ({ askOpen: !state.askOpen })),
-  setView: (view) => set({ view }),
-  setFilters: (patch) =>
-    set((state) => ({
-      filters: { ...state.filters, ...patch },
-      filterRevision: state.filterRevision + 1,
-    })),
-  toggleArrayFilter: (key, value) =>
-    set((state) => {
-      const current = state.filters[key];
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-      return {
-        filters: { ...state.filters, [key]: next },
-        filterRevision: state.filterRevision + 1,
-      };
-    }),
-  clearFilters: () =>
-    set((state) => ({
-      filters: defaultFilters,
-      filterRevision: state.filterRevision + 1,
-    })),
-  addPhrase: (p) =>
-    set((state) => {
-      const trimmed = p.trim();
-      if (!trimmed) return {};
-      const key = trimmed.toLowerCase();
-      if (state.phrases.some((x) => x.toLowerCase() === key)) return {};
-      return { phrases: [...state.phrases, trimmed] };
-    }),
-  removePhrase: (p) =>
-    set((state) => ({ phrases: state.phrases.filter((x) => x !== p) })),
-  setCompareBatches: (batches) =>
-    set(() => ({ compareBatches: batches.slice(0, 4) })),
-  toggleCompareBatch: (batch) =>
-    set((state) => {
-      const idx = state.compareBatches.indexOf(batch);
-      if (idx >= 0) {
-        return {
-          compareBatches: state.compareBatches.filter((b) => b !== batch),
-        };
-      }
-      // Cap at 4. If full, drop the oldest peer (keep baseline + last 3).
-      if (state.compareBatches.length >= 4) {
-        return {
-          compareBatches: [
-            state.compareBatches[0],
-            ...state.compareBatches.slice(2),
-            batch,
-          ],
-        };
-      }
-      return { compareBatches: [...state.compareBatches, batch] };
-    }),
   setSelectedCompany: (c) => set({ selectedCompany: c }),
-  hydrateFromUrl: (next) =>
-    set(() => ({
-      view: next.view ?? "overview",
-      filters: { ...defaultFilters, ...(next.filters ?? {}) },
-      phrases: next.phrases ?? [],
-      compareBatches: next.compareBatches ?? [],
-      // intentionally do not bump filterRevision on hydration
-    })),
 }));
 
 export function isFilteringActive(filters: FilterState): boolean {
@@ -276,9 +157,4 @@ export function filterCompanies(
     }
     return true;
   });
-}
-
-export function useFilteredCompanies(companies: Company[]): Company[] {
-  const filters = useUi((s) => s.filters);
-  return useMemo(() => filterCompanies(companies, filters), [companies, filters]);
 }

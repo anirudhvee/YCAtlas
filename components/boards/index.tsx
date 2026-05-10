@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useCompanies } from "@/components/companies-provider";
 import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useFilters } from "@/lib/url-state";
 import {
   STATUS_COLORS,
   aggregateByBatch,
@@ -31,20 +31,13 @@ const aliasTag = (t: string) => TAG_ALIAS[t] ?? t;
 
 export function Boards() {
   const all = useCompanies();
-  const filters = useUi((s) => s.filters);
-  const setFilters = useUi((s) => s.setFilters);
-  const toggleArrayFilter = useUi((s) => s.toggleArrayFilter);
+  const { filters, setFilters, toggleArrayFilter } = useFilters();
   const setSelectedCompany = useUi((s) => s.setSelectedCompany);
-  const mounted = useMounted();
 
   const data = useMemo(() => {
-    const activeBatches = mounted
-      ? new Set(filters.batches)
-      : new Set<string>();
-    const activeRegions = mounted
-      ? new Set(filters.regions)
-      : new Set<string>();
-    const activeTags = mounted ? new Set(filters.tags) : new Set<string>();
+    const activeBatches = new Set(filters.batches);
+    const activeRegions = new Set(filters.regions);
+    const activeTags = new Set(filters.tags);
 
     const topBatches = topBatchesByPctTopCompany(all, 8);
 
@@ -118,7 +111,7 @@ export function Boards() {
       activeRegions,
       activeTags,
     };
-  }, [all, mounted, filters]);
+  }, [all, filters]);
 
   return (
     <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto">

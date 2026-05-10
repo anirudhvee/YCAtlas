@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useCompanies } from "@/components/companies-provider";
-import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useFilters } from "@/lib/url-state";
 import {
   aggregatesAboveMinSize,
   aggregatesExcludingUnspecified,
@@ -25,9 +24,7 @@ const TOOLTIP_GAP = 8;
 
 export function CohortStrip() {
   const all = useCompanies();
-  const filters = useUi((s) => s.filters);
-  const setFilters = useUi((s) => s.setFilters);
-  const mounted = useMounted();
+  const { filters, setFilters } = useFilters();
   const [anchor, setAnchor] = useState<TooltipAnchor | null>(null);
 
   const aggregates = useMemo(
@@ -38,10 +35,10 @@ export function CohortStrip() {
     [all],
   );
 
-  const selected = mounted ? new Set(filters.batches) : new Set<string>();
+  const selected = new Set(filters.batches);
   const hasSelection = selected.size > 0;
   const selectedBatch =
-    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
+    filters.batches.length === 1 ? filters.batches[0] : null;
   const selectedAgg = selectedBatch
     ? aggregates.find((a) => a.batch === selectedBatch)
     : null;

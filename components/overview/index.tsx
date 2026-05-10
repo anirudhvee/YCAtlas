@@ -2,8 +2,7 @@
 
 import { useMemo } from "react";
 import { useCompanies } from "@/components/companies-provider";
-import { useFilteredCompanies, useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useFilters, useFilteredCompanies } from "@/lib/url-state";
 import {
   aggregatesAboveMinSize,
   aggregatesExcludingUnspecified,
@@ -22,8 +21,7 @@ import { BuzzwordsTile } from "./buzzwords-tile";
 export function Overview() {
   const all = useCompanies();
   const filtered = useFilteredCompanies(all);
-  const filters = useUi((s) => s.filters);
-  const mounted = useMounted();
+  const { filters } = useFilters();
 
   const aggregates = useMemo(
     () =>
@@ -35,9 +33,9 @@ export function Overview() {
   const canonicalTotal = useMemo(() => canonicalCount(all), [all]);
   const yearSpan = useMemo(() => batchYearSpan(all), [all]);
 
-  const listGridCompanies = mounted ? filtered : all;
+  const listGridCompanies = filtered;
   const selectedBatch =
-    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
+    filters.batches.length === 1 ? filters.batches[0] : null;
 
   return (
     <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto with-bottom-nav">

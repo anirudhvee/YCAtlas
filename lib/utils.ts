@@ -27,6 +27,19 @@ export function batchToShort(batch: string): string {
   return `${code}${year.slice(2)}`;
 }
 
+const SHORT_TO_SEASON: Record<string, string> = {
+  W: "Winter",
+  P: "Spring",
+  S: "Summer",
+  F: "Fall",
+};
+
+export function batchFromShort(short: string): string {
+  const m = /^([WPSF])(\d{2})$/.exec(short);
+  if (!m) return short;
+  return `${SHORT_TO_SEASON[m[1]]} ${2000 + Number(m[2])}`;
+}
+
 export function batchToSortKey(batch: string): number {
   if (batch === "Unspecified") return Number.POSITIVE_INFINITY;
   const [season, year] = batch.split(" ");

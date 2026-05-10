@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Gem } from "lucide-react";
 import { useUi } from "@/lib/store";
+import { useFilters } from "@/lib/url-state";
 import { useMounted } from "@/lib/use-mounted";
 import { batchToShort, cleanFormerNames, cn } from "@/lib/utils";
 import type { Company, CompanyStatus } from "@/lib/types";
@@ -34,7 +35,7 @@ function parseLocation(allLocations: string): string | null {
 export function DetailDrawer() {
   const company = useUi((s) => s.selectedCompany);
   const setSelectedCompany = useUi((s) => s.setSelectedCompany);
-  const toggleArrayFilter = useUi((s) => s.toggleArrayFilter);
+  const { toggleArrayFilter } = useFilters();
 
   const mounted = useMounted();
   const [shown, setShown] = useState<Company | null>(null);

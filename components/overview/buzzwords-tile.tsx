@@ -10,8 +10,7 @@ import {
   YAxis,
   type TooltipContentProps,
 } from "recharts";
-import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { usePhrases, useView } from "@/lib/url-state";
 import { phraseSeries } from "@/lib/overview-data";
 import { DEFAULT_PHRASES } from "@/lib/phrases";
 import type { Company } from "@/lib/types";
@@ -26,14 +25,12 @@ interface Props {
 }
 
 export function BuzzwordsTile({ companies, selectedBatch }: Props) {
-  const setView = useUi((s) => s.setView);
-  const userPhrases = useUi((s) => s.phrases);
-  const mounted = useMounted();
+  const [, setView] = useView();
+  const { phrases: userPhrases } = usePhrases();
 
   // Count matches the Buzzwords view: defaults + user-added, dedup'd
   // case-insensitively (the view applies the same dedup).
   const phraseCount = useMemo(() => {
-    if (!mounted) return DEFAULT_PHRASES.length;
     const seen = new Set(DEFAULT_PHRASES.map((p) => p.toLowerCase()));
     let extra = 0;
     for (const p of userPhrases) {
@@ -43,7 +40,7 @@ export function BuzzwordsTile({ companies, selectedBatch }: Props) {
       extra++;
     }
     return DEFAULT_PHRASES.length + extra;
-  }, [mounted, userPhrases]);
+  }, [userPhrases]);
   const tracked = `${phraseCount} phrase${phraseCount === 1 ? "" : "s"} tracked`;
 
   const series = useMemo(

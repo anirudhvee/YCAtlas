@@ -4,15 +4,14 @@ import { Sparkles } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { AskTrigger } from "./ask-trigger";
 import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useView } from "@/lib/url-state";
 import { VIEWS } from "@/lib/views";
 
 export function Header() {
-  const view = useUi((s) => s.view);
+  const [view] = useView();
   const setAskOpen = useUi((s) => s.setAskOpen);
   const askOpen = useUi((s) => s.askOpen);
-  const mounted = useMounted();
-  const meta = VIEWS.find((v) => v.id === (mounted ? view : "overview"));
+  const meta = VIEWS.find((v) => v.id === view);
 
   return (
     <header

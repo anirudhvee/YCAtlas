@@ -9,8 +9,7 @@ import {
 } from "react";
 import { Plus, X } from "lucide-react";
 import { useCompanies } from "@/components/companies-provider";
-import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useCompareBatches } from "@/lib/url-state";
 import {
   REGION_BUCKETS,
   STAGE_BUCKETS,
@@ -34,10 +33,8 @@ type Lens = "outcomes" | "industries" | "regions" | "themes";
 
 export function Compare() {
   const all = useCompanies();
-  const compareBatches = useUi((s) => s.compareBatches);
-  const setCompareBatches = useUi((s) => s.setCompareBatches);
-  const toggleCompareBatch = useUi((s) => s.toggleCompareBatch);
-  const mounted = useMounted();
+  const { compareBatches, setCompareBatches, toggleCompareBatch } =
+    useCompareBatches();
   const [lens, setLens] = useState<Lens>("outcomes");
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement | null>(null);
@@ -51,13 +48,12 @@ export function Compare() {
   );
 
   useEffect(() => {
-    if (!mounted) return;
     if (compareBatches.length > 0) return;
     if (aggregates.length < 2) return;
     const last = aggregates[aggregates.length - 1].batch;
     const prev = aggregates[aggregates.length - 2].batch;
     setCompareBatches([prev, last]);
-  }, [mounted, aggregates, compareBatches.length, setCompareBatches]);
+  }, [aggregates, compareBatches.length, setCompareBatches]);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -69,12 +65,7 @@ export function Compare() {
     return () => window.removeEventListener("mousedown", onClick);
   }, [pickerOpen]);
 
-  // Hydration gate — store reads `compareBatches` from the URL
-  // synchronously, so server `[]` would clash with client list.
-  const effectiveBatches = useMemo(
-    () => (mounted ? compareBatches : []),
-    [mounted, compareBatches],
-  );
+  const effectiveBatches = compareBatches;
 
   // Compute the dataset's reference year once and pass it down — every
   // cohortMetrics call would otherwise re-scan the whole company list

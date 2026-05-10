@@ -13,8 +13,8 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import { useCompanies } from "@/components/companies-provider";
-import { filterCompanies, useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { filterCompanies } from "@/lib/store";
+import { useFilters, usePhrases } from "@/lib/url-state";
 import { THRESHOLDS } from "@/lib/compare-data";
 import { phraseSeries } from "@/lib/overview-data";
 import { DEFAULT_PHRASES } from "@/lib/phrases";
@@ -38,11 +38,8 @@ function phraseColor(i: number) {
 
 export function Buzzwords() {
   const all = useCompanies();
-  const filters = useUi((s) => s.filters);
-  const phrases = useUi((s) => s.phrases);
-  const addPhrase = useUi((s) => s.addPhrase);
-  const removePhrase = useUi((s) => s.removePhrase);
-  const mounted = useMounted();
+  const { filters } = useFilters();
+  const { phrases, addPhrase, removePhrase } = usePhrases();
 
   const filteredForBuzzwords = useMemo(
     () => filterCompanies(all, { ...filters, batches: [] }),
@@ -50,24 +47,22 @@ export function Buzzwords() {
   );
 
   const selectedBatch =
-    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
-  const companies = mounted ? filteredForBuzzwords : all;
+    filters.batches.length === 1 ? filters.batches[0] : null;
+  const companies = filteredForBuzzwords;
 
   const list = useMemo(() => {
     const seen = new Set(DEFAULT_PHRASES.map((p) => p.toLowerCase()));
-    const extras = mounted
-      ? phrases.filter((p) => {
-          const k = p.toLowerCase();
-          if (seen.has(k)) return false;
-          seen.add(k);
-          return true;
-        })
-      : [];
+    const extras = phrases.filter((p) => {
+      const k = p.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
     return [
       ...DEFAULT_PHRASES.map((p) => ({ phrase: p, removable: false })),
       ...extras.map((p) => ({ phrase: p, removable: true })),
     ];
-  }, [phrases, mounted]);
+  }, [phrases]);
 
   const summaryPhrases = list.slice(0, 8).map((l) => l.phrase);
 

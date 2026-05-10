@@ -3,13 +3,8 @@
 import { X } from "lucide-react";
 import { useCompanies } from "@/components/companies-provider";
 import { useMemo } from "react";
-import {
-  defaultFilters,
-  isFilteringActive,
-  useFilteredCompanies,
-  useUi,
-} from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { isFilteringActive } from "@/lib/store";
+import { useFilters, useFilteredCompanies } from "@/lib/url-state";
 import { canonicalCompanies } from "@/lib/overview-data";
 import { batchToShort, cn } from "@/lib/utils";
 
@@ -22,15 +17,11 @@ interface Chip {
 }
 
 export function FilterChipBar() {
-  const filters = useUi((s) => s.filters);
-  const setFilters = useUi((s) => s.setFilters);
-  const toggleArrayFilter = useUi((s) => s.toggleArrayFilter);
-  const clearFilters = useUi((s) => s.clearFilters);
+  const { filters, setFilters, toggleArrayFilter, clearFilters } = useFilters();
   const companies = useCompanies();
   const filtered = useFilteredCompanies(companies);
-  const mounted = useMounted();
 
-  const effective = mounted ? filters : defaultFilters;
+  const effective = filters;
   const active = isFilteringActive(effective);
 
   const canonical = useMemo(() => canonicalCompanies(companies), [companies]);
@@ -141,10 +132,8 @@ export function FilterChipBar() {
     });
   }
 
-  const total = mounted ? canonical.length : 0;
-  const filteredCount = mounted
-    ? filtered.filter((c) => canonicalKeys.has(c.id)).length
-    : 0;
+  const total = canonical.length;
+  const filteredCount = filtered.filter((c) => canonicalKeys.has(c.id)).length;
 
   return (
     <div className="border-b border-border bg-card font-mono text-[11.5px]">

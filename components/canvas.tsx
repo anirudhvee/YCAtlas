@@ -9,14 +9,12 @@ import { Globe } from "@/components/globe";
 import { Timeline } from "@/components/timeline";
 import { Compare } from "@/components/compare";
 import { DetailDrawer } from "@/components/detail-drawer";
-import { useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useView } from "@/lib/url-state";
 import { VIEWS } from "@/lib/views";
 
 export function Canvas() {
-  const view = useUi((s) => s.view);
-  const mounted = useMounted();
-  const effectiveView = mounted ? view : "overview";
+  const [view] = useView();
+  const effectiveView = view;
 
   return (
     <div className="flex h-full flex-col">

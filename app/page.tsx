@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { Canvas } from "@/components/canvas";
 
 export default function Home() {
-  return <Canvas />;
+  return (
+    <Suspense fallback={null}>
+      <Canvas />
+    </Suspense>
+  );
 }

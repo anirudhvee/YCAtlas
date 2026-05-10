@@ -9,6 +9,7 @@ import {
   type FilterState,
   type ViewId,
 } from "@/lib/store";
+import { useFilters, useView } from "@/lib/url-state";
 import { AskTurn, type Turn } from "./ask-turn";
 import type { TurnEvent } from "./ask-event";
 
@@ -107,9 +108,8 @@ function getSafeAreaTopPx(): number {
 }
 
 export function AskPanel() {
-  const setFilters = useUi((s) => s.setFilters);
-  const clearFilters = useUi((s) => s.clearFilters);
-  const setView = useUi((s) => s.setView);
+  const { setFilters, clearFilters } = useFilters();
+  const [, setView] = useView();
   const open = useUi((s) => s.askOpen);
   const setAskOpen = useUi((s) => s.setAskOpen);
 

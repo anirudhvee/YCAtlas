@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCompanies } from "@/components/companies-provider";
 import { filterCompanies, useUi } from "@/lib/store";
-import { useMounted } from "@/lib/use-mounted";
+import { useFilters } from "@/lib/url-state";
 import { canonicalCompanies, canonicalCount } from "@/lib/overview-data";
 import { batchToShort, batchToSortKey, cn } from "@/lib/utils";
 import type { Company } from "@/lib/types";
@@ -54,14 +54,11 @@ function compareCompanies(a: Company, b: Company, sort: SortKey): number {
 export function Wall() {
   const all = useCompanies();
   const canonical = useMemo(() => canonicalCompanies(all), [all]);
-  const filters = useUi((s) => s.filters);
+  const { filters, setFilters, clearFilters } = useFilters();
   const filtered = useMemo(
     () => filterCompanies(canonical, filters),
     [canonical, filters],
   );
-  const setFilters = useUi((s) => s.setFilters);
-  const clearFilters = useUi((s) => s.clearFilters);
-  const mounted = useMounted();
 
   const [sort, setSort] = useState<SortKey>("top_company");
 
@@ -98,10 +95,10 @@ export function Wall() {
   const universe = useMemo(() => canonicalCount(all), [all]);
 
   const selectedBatch =
-    mounted && filters.batches.length === 1 ? filters.batches[0] : null;
-  const allBatchesActive = mounted && filters.batches.length === 0;
+    filters.batches.length === 1 ? filters.batches[0] : null;
+  const allBatchesActive = filters.batches.length === 0;
   const latestActive =
-    mounted && selectedBatch !== null && selectedBatch === latestBatch;
+    selectedBatch !== null && selectedBatch === latestBatch;
 
   return (
     <div className="flex h-full flex-col">
