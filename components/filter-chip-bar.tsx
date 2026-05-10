@@ -186,7 +186,7 @@ export function FilterChipBar() {
               type="button"
               onClick={clearFilters}
               aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
-              className="hidden h-[22px] shrink-0 items-center gap-1.5 rounded-full border border-border px-2 text-muted-foreground transition-colors hover:border-[color:var(--border-strong)] hover:bg-[color:var(--bg-soft)] hover:text-foreground sm:inline-flex"
+              className="hidden h-[22px] shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--primary-line)] bg-[color:var(--primary-soft)] px-2 text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:inline-flex"
             >
               <X className="size-2.5" strokeWidth={2.25} />
               <span>clear ({chips.length})</span>
