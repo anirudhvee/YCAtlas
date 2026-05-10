@@ -40,8 +40,8 @@ export function Overview() {
     mounted && filters.batches.length === 1 ? filters.batches[0] : null;
 
   return (
-    <div className="scroll-fine h-full overflow-y-auto">
-      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+    <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto with-bottom-nav">
+      <div className="mx-auto max-w-[1480px] px-4 pb-7 pt-4 sm:px-5 sm:pt-5">
         <div className="page-head">
           <div>
             <div className="eyebrow">

@@ -121,8 +121,8 @@ export function Boards() {
   }, [all, mounted, filters]);
 
   return (
-    <div className="scroll-fine h-full overflow-y-auto">
-      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+    <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-4 pb-7 pt-4 sm:px-5 sm:pt-5">
         <div className="page-head">
           <div>
             <div className="eyebrow">Boards · all-time leaderboards</div>
@@ -179,13 +179,13 @@ function BoardCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-[290px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
+    <div className="flex h-[290px] flex-col rounded-[10px] border border-border bg-card p-3 transition-colors hover:border-[color:var(--border-strong)] sm:p-3.5">
+      <div className="mb-2.5 flex items-baseline justify-between gap-2 sm:mb-3">
+        <div className="min-w-0 flex-1 truncate font-mono text-[10px] uppercase tracking-[0.12em] text-foreground sm:tracking-[0.18em]">
           {title}
         </div>
         {caption && (
-          <div className="font-mono text-[9px] tabular-nums text-muted-foreground">
+          <div className="shrink-0 font-mono text-[9px] tabular-nums text-muted-foreground">
             {caption}
           </div>
         )}

@@ -133,8 +133,8 @@ export function Globe() {
   const max = rows[0]?.count ?? 1;
 
   return (
-    <div className="scroll-fine h-full overflow-y-auto">
-      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+    <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-4 pb-7 pt-4 sm:px-5 sm:pt-5">
         <div className="page-head">
           <div>
             <div className="eyebrow">
@@ -155,45 +155,26 @@ export function Globe() {
                 : ""}
             </div>
           </div>
-          <div className="page-head-meta">
-            <div className="seg" role="tablist" aria-label="Granularity">
-              {(
-                [
-                  { id: "cities", label: "Cities" },
-                  { id: "countries", label: "Countries" },
-                  { id: "regions", label: "Regions" },
-                ] as const
-              ).map((opt) => {
-                const active = granularity === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    className={active ? "active" : ""}
-                    onClick={() => setGranularity(opt.id)}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="hidden items-center gap-3 font-mono text-[10.5px] text-muted-foreground lg:flex">
+            <GranularitySeg
+              granularity={granularity}
+              setGranularity={setGranularity}
+            />
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-[14px] lg:grid-cols-[1.6fr_1fr]">
-          <div className="flex flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
-            <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col rounded-[10px] border border-border bg-card p-3 transition-colors hover:border-[color:var(--border-strong)] sm:p-3.5">
+            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between md:gap-3">
               <div className="flex flex-col gap-[3px]">
                 <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground">
                   World
                 </div>
                 <div className="text-[12px] text-muted-foreground">
-                  Bubble area = company count · drag to spin · scroll to zoom
+                  Bubble area = company count · drag to spin · pinch to zoom
                 </div>
               </div>
-              <div className="inline-flex items-center gap-3 font-mono text-[10px] text-muted-foreground">
+              <div className="scroll-x-hidden -mx-1 flex items-center gap-3 overflow-x-auto px-1 font-mono text-[10px] text-muted-foreground md:flex-wrap md:overflow-visible">
                 {(
                   [
                     "Active",
@@ -202,7 +183,7 @@ export function Globe() {
                     "Inactive",
                   ] as const
                 ).map((k) => (
-                  <span key={k} className="inline-flex items-center gap-1.5">
+                  <span key={k} className="inline-flex shrink-0 items-center gap-1.5">
                     <span
                       aria-hidden
                       className="inline-block size-2 rounded-sm"
@@ -213,12 +194,18 @@ export function Globe() {
                 ))}
               </div>
             </div>
-            <div className="relative mt-3 h-[520px] overflow-hidden rounded-md">
+            <div className="relative mt-3 h-[420px] overflow-hidden rounded-md sm:h-[520px]">
               <GlobeView />
             </div>
           </div>
 
-          <div className="flex flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
+          <div className="flex flex-col rounded-[10px] border border-border bg-card p-3 transition-colors hover:border-[color:var(--border-strong)] sm:p-3.5">
+            <div className="mb-3 lg:hidden">
+              <GranularitySeg
+                granularity={granularity}
+                setGranularity={setGranularity}
+              />
+            </div>
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-col gap-[3px]">
                 <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground">
@@ -233,7 +220,7 @@ export function Globe() {
                 <span>{granularity}</span>
               </div>
             </div>
-            <div className="scroll-fine mt-3 flex max-h-[480px] flex-col gap-0.5 overflow-y-auto">
+            <div className="scroll-fine mt-3 flex max-h-[360px] flex-col gap-0.5 overflow-y-auto sm:max-h-[480px]">
               {rows.length === 0 ? (
                 <div className="grid h-32 place-items-center font-mono text-[10px] text-muted-foreground">
                   No data
@@ -277,6 +264,40 @@ export function Globe() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function GranularitySeg({
+  granularity,
+  setGranularity,
+}: {
+  granularity: Granularity;
+  setGranularity: (g: Granularity) => void;
+}) {
+  return (
+    <div className="seg" role="tablist" aria-label="Granularity">
+      {(
+        [
+          { id: "cities", label: "Cities" },
+          { id: "countries", label: "Countries" },
+          { id: "regions", label: "Regions" },
+        ] as const
+      ).map((opt) => {
+        const active = granularity === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={active ? "active" : ""}
+            onClick={() => setGranularity(opt.id)}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

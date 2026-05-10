@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { AskPanel } from "@/components/ask-panel";
 import { CompaniesProvider } from "@/components/companies-provider";
 import { FilterChipBar } from "@/components/filter-chip-bar";
@@ -24,7 +25,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "YC Atlas",
-  description: "Interactive dashboard for exploring Y Combinator companies",
+  description:
+    "Interactive dashboard for exploring Y Combinator companies, by Anirudh Venkatachalam.",
+  openGraph: {
+    title: "YC Atlas",
+    description:
+      "Interactive dashboard for exploring Y Combinator companies, by Anirudh Venkatachalam.",
+  },
 };
 
 async function loadShellStats() {
@@ -86,6 +93,10 @@ export default async function RootLayout({
                   <AskPanel />
                 </main>
               </div>
+              <BottomNav
+                totalCompanies={totalCompanies}
+                batchRange={batchRange}
+              />
             </div>
           </CompaniesProvider>
         </ThemeProvider>

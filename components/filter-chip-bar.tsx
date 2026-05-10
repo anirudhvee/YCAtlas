@@ -147,42 +147,67 @@ export function FilterChipBar() {
     : 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-card px-4 py-2 font-mono text-[11.5px]">
-      {chips.map((c) => (
-        <span
-          key={c.key}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border bg-background py-[2px] pl-[9px] pr-1 leading-none",
-            c.marker
-              ? "border-[color:var(--primary-line)]"
-              : "border-border",
-          )}
-        >
-          <span className={c.marker ? "text-primary" : "text-faint"}>{c.k}</span>
-          <span className="text-foreground">{c.v}</span>
-          <button
-            type="button"
-            onClick={c.onRemove}
-            aria-label={`Remove ${c.k}: ${c.v}`}
-            className="grid size-4 place-items-center rounded-full text-faint transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground"
-          >
-            <X className="size-2.5" strokeWidth={2.25} />
-          </button>
-        </span>
-      ))}
-      <div className="ml-auto flex items-center gap-2.5 text-muted-foreground">
-        <span className="tabular-nums">
-          {filteredCount.toLocaleString()} / {total.toLocaleString()} matching
+    <div className="border-b border-border bg-card font-mono text-[11.5px]">
+      <div className="flex items-center justify-between gap-2 px-3 pt-2 sm:hidden">
+        <span className="tabular-nums text-foreground/70">
+          <span className="text-foreground">{filteredCount.toLocaleString()}</span>
+          <span className="text-faint"> / {total.toLocaleString()}</span>
+          <span className="text-faint"> matching</span>
         </span>
         <button
           type="button"
           onClick={clearFilters}
           aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
-          className="inline-flex h-[22px] items-center gap-1.5 rounded-full border border-border px-2 text-muted-foreground transition-colors hover:border-[color:var(--border-strong)] hover:bg-[color:var(--bg-soft)] hover:text-foreground"
+          className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-destructive/35 bg-destructive/10 px-2.5 text-[11px] text-destructive transition-colors hover:bg-destructive/20"
         >
-          <X className="size-2.5" strokeWidth={2.25} />
-          <span>clear ({chips.length})</span>
+          <X className="size-3" strokeWidth={2.25} />
+          <span>Clear all ({chips.length})</span>
         </button>
+      </div>
+
+      <div className="flex items-center gap-1.5 sm:flex-wrap sm:px-4 sm:py-2">
+        <div className="relative min-w-0 flex-1 sm:flex-none">
+          <div className="scroll-x-hidden flex items-center gap-1.5 overflow-x-auto px-3 pb-2 pt-1.5 sm:overflow-visible sm:px-0 sm:py-0">
+            {chips.map((c) => (
+              <span
+                key={c.key}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-background py-[3px] pl-[10px] pr-1 leading-none sm:py-[2px] sm:pl-[9px]",
+                  c.marker
+                    ? "border-[color:var(--primary-line)]"
+                    : "border-border",
+                )}
+              >
+                <span className={c.marker ? "text-primary" : "text-faint"}>{c.k}</span>
+                <span className="text-foreground">{c.v}</span>
+                <button
+                  type="button"
+                  onClick={c.onRemove}
+                  aria-label={`Remove ${c.k}: ${c.v}`}
+                  className="grid size-[18px] place-items-center rounded-full text-faint transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground sm:size-4"
+                >
+                  <X className="size-2.5" strokeWidth={2.25} />
+                </button>
+              </span>
+            ))}
+            <span className="hidden tabular-nums text-muted-foreground sm:ml-auto sm:inline-flex">
+              {filteredCount.toLocaleString()} / {total.toLocaleString()} matching
+            </span>
+            <button
+              type="button"
+              onClick={clearFilters}
+              aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
+              className="hidden h-[22px] shrink-0 items-center gap-1.5 rounded-full border border-border px-2 text-muted-foreground transition-colors hover:border-[color:var(--border-strong)] hover:bg-[color:var(--bg-soft)] hover:text-foreground sm:inline-flex"
+            >
+              <X className="size-2.5" strokeWidth={2.25} />
+              <span>clear ({chips.length})</span>
+            </button>
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent sm:hidden"
+          />
+        </div>
       </div>
     </div>
   );

@@ -31,15 +31,17 @@ export function ChartCard({
         className,
       )}
     >
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-[3px]">
+      <div className="relative z-10 flex flex-col items-stretch gap-2 md:flex-row md:items-start md:justify-between md:gap-3">
+        <div className="flex min-w-0 flex-col gap-[3px]">
           <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground">
             {title}
           </div>
           <div className="text-[12px] text-muted-foreground">{subtitle}</div>
         </div>
         {headRight && (
-          <div className="flex shrink-0 items-center gap-3">{headRight}</div>
+          <div className="scroll-x-hidden -mx-1 flex min-w-0 items-center gap-3 overflow-x-auto px-1 md:mx-0 md:shrink-0 md:overflow-visible md:px-0">
+            {headRight}
+          </div>
         )}
       </div>
       {stats && (

@@ -433,7 +433,7 @@ export function Timeline() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-5 pt-5">
+      <div className="px-4 pt-4 sm:px-5 sm:pt-5">
         <div className="mx-auto max-w-[1480px]">
           <div className="page-head">
             <div>
@@ -474,10 +474,10 @@ export function Timeline() {
         </div>
       </div>
 
-      <div className="scroll-fine mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 flex-col gap-[14px] overflow-y-auto px-5 pt-4 pb-7 lg:grid lg:grid-cols-[minmax(0,1fr)_232px]">
+      <div className="scroll-fine mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 flex-col gap-[14px] overflow-y-auto px-4 pt-4 pb-7 sm:px-5 lg:grid lg:grid-cols-[minmax(0,1fr)_232px]">
         <div className="flex flex-col gap-[14px]">
         <div className="flex h-[360px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
+          <div className="mb-2 flex flex-col items-stretch gap-2 md:flex-row md:flex-wrap md:items-baseline md:justify-between md:gap-3">
             <div>
               <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
                 Companies per batch
@@ -486,7 +486,7 @@ export function Timeline() {
                 {activeMetric.hint}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+            <div className="scroll-x-hidden -mx-3.5 flex items-center gap-1.5 overflow-x-auto px-3.5 font-mono text-[10px] md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
               {OUTCOME_METRICS.map((opt) => (
                 <MetricTab
                   key={opt.id}
@@ -497,7 +497,7 @@ export function Timeline() {
               ))}
               <span
                 aria-hidden
-                className="mx-0.5 h-3.5 w-px bg-border"
+                className="mx-0.5 h-3.5 w-px shrink-0 bg-border"
               />
               {COMPOSITION_METRICS.map((opt) => (
                 <MetricTab
@@ -841,7 +841,7 @@ function MetricTab({
       type="button"
       onClick={() => onSelect(opt.id)}
       aria-pressed={active}
-      className={cn("pill-btn", active && "active")}
+      className={cn("pill-btn shrink-0", active && "active")}
     >
       {opt.label}
     </button>

@@ -92,6 +92,20 @@ function isViewId(v: unknown): v is ViewId {
   return typeof v === "string" && (VIEW_IDS as readonly string[]).includes(v);
 }
 
+let cachedSafeAreaTopPx: number | null = null;
+function getSafeAreaTopPx(): number {
+  if (typeof window === "undefined") return 0;
+  if (cachedSafeAreaTopPx !== null) return cachedSafeAreaTopPx;
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;top:env(safe-area-inset-top);visibility:hidden;";
+  document.body.appendChild(probe);
+  const t = probe.getBoundingClientRect().top;
+  probe.remove();
+  cachedSafeAreaTopPx = Number.isFinite(t) ? t : 0;
+  return cachedSafeAreaTopPx;
+}
+
 export function AskPanel() {
   const setFilters = useUi((s) => s.setFilters);
   const clearFilters = useUi((s) => s.clearFilters);
@@ -103,8 +117,15 @@ export function AskPanel() {
   const [value, setValue] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [triggerOrigin, setTriggerOrigin] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [dialogRect, setDialogRect] = useState<DOMRect | null>(null);
+  const [phase, setPhase] = useState<"entering" | "entered">("entering");
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -126,6 +147,7 @@ export function AskPanel() {
     setTimeout(() => {
       setAskOpen(false);
       setClosing(false);
+      setPhase("entering");
     }, CLOSE_DURATION_MS);
   }, [setAskOpen]);
 
@@ -160,6 +182,43 @@ export function AskPanel() {
       const t = setTimeout(() => inputRef.current?.focus(), 60);
       return () => clearTimeout(t);
     }
+  }, [open]);
+
+  // Dialog rect is computed from known layout constants instead of
+  // measured — getBoundingClientRect would return the in-flight scaled
+  // box during the open animation and throw off the transform-origin.
+  // The setState calls are intentional one-time captures on open, not
+  // a sync source — disable react-hooks/set-state-in-effect for them.
+  useEffect(() => {
+    if (!open) return;
+    const visibleTrigger = [
+      ...document.querySelectorAll<HTMLElement>("[data-ask-trigger]"),
+    ].find((el) => el.getClientRects().length > 0);
+    if (visibleTrigger) {
+      const r = visibleTrigger.getBoundingClientRect();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTriggerOrigin({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    } else {
+      setTriggerOrigin(null);
+    }
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const sidePad = vw >= 640 ? 16 : 12;
+    const width = Math.min(680, vw - sidePad * 2);
+    const left = (vw - width) / 2;
+    const top = Math.max(vh * 0.06, 16 + getSafeAreaTopPx());
+    setDialogRect(new DOMRect(left, top, width, 56));
+    // Two RAFs so the initial "entering" transform is painted before we
+    // flip to "entered" — otherwise the browser collapses both frames
+    // and the CSS transition snaps instead of animating.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setPhase("entered"));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, [open]);
 
   // Auto-scroll to bottom as content streams in.
@@ -290,14 +349,15 @@ export function AskPanel() {
     <>
       {open && (
         <div
-          className={`fixed inset-0 z-50 flex flex-col items-center px-4 pt-[14vh] ${
+          className={`fixed inset-0 z-50 flex flex-col items-center px-3 pt-[6vh] sm:px-4 sm:pt-[14vh] ${
             closing ? "pointer-events-none" : ""
           }`}
+          style={{ paddingTop: "max(6vh, calc(env(safe-area-inset-top) + 16px))" }}
         >
           <div
             onClick={closePanel}
             aria-hidden
-            className={`absolute inset-0 bg-black/15 ${
+            className={`absolute inset-0 bg-black/55 ${
               closing ? "" : "ask-backdrop-in"
             }`}
             style={
@@ -306,22 +366,47 @@ export function AskPanel() {
                 : undefined
             }
           />
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-x-0 top-0 -z-0 h-[40vh] ${
+              closing ? "" : "ask-backdrop-in"
+            }`}
+            style={{
+              background:
+                "radial-gradient(ellipse 60% 80% at 50% 18vh, color-mix(in oklab, var(--primary) 18%, transparent) 0%, transparent 70%)",
+              ...(closing
+                ? { opacity: 0, transition: "opacity 180ms ease-out" }
+                : {}),
+            }}
+          />
 
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal
             aria-label="Ask Atlas"
-            className="relative flex w-full max-w-[680px] flex-col gap-3 origin-top"
-            style={
-              closing
-                ? {
-                    opacity: 0,
-                    transform: "translateY(-13vh) scale(0.5)",
-                    transition:
-                      "opacity 220ms cubic-bezier(0.4, 0, 1, 1), transform 220ms cubic-bezier(0.4, 0, 1, 1)",
-                  }
-                : undefined
-            }
+            className="relative flex w-full max-w-[680px] flex-col gap-3"
+            style={(() => {
+              const originX =
+                triggerOrigin && dialogRect
+                  ? `${triggerOrigin.x - dialogRect.left}px`
+                  : "50%";
+              const originY =
+                triggerOrigin && dialogRect
+                  ? `${triggerOrigin.y - dialogRect.top}px`
+                  : "0";
+              const transformOrigin = `${originX} ${originY}`;
+              const collapsed = "translateY(-13vh) scale(0.5)";
+              const expanded = "translateY(0) scale(1)";
+              const isCollapsed = closing || phase === "entering";
+              return {
+                transformOrigin,
+                opacity: isCollapsed ? 0 : 1,
+                transform: isCollapsed ? collapsed : expanded,
+                transition:
+                  "opacity 240ms cubic-bezier(0.32, 0.72, 0, 1), transform 280ms cubic-bezier(0.32, 0.72, 0, 1)",
+              };
+            })()}
           >
             <InputBar
               inputRef={inputRef}
@@ -343,7 +428,7 @@ export function AskPanel() {
               >
                 <div
                   ref={scrollRef}
-                  className="max-h-[60vh] overflow-y-auto p-5"
+                  className="max-h-[64vh] overflow-y-auto p-4 sm:max-h-[60vh] sm:p-5"
                 >
                   <div className="flex flex-col gap-7">
                     {turns.map((t, i) => (
@@ -387,9 +472,9 @@ function InputBar({
         e.preventDefault();
         onSubmit();
       }}
-      className="ask-input-in relative flex h-14 items-center gap-3 rounded-full border border-foreground/10 bg-card/55 pr-3 pl-5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-foreground/5 backdrop-blur-2xl backdrop-saturate-150 transition-[border-color,box-shadow] focus-within:border-primary/40 focus-within:shadow-primary/15"
+      className="relative flex h-14 items-center gap-3 rounded-full border border-primary/25 bg-card pr-3 pl-4 shadow-[0_0_0_1px_rgba(255,102,0,0.08),0_24px_60px_-18px_rgba(255,102,0,0.35),0_8px_30px_-10px_rgba(0,0,0,0.6)] transition-[border-color,box-shadow] focus-within:border-primary/55 focus-within:shadow-[0_0_0_1px_rgba(255,102,0,0.18),0_24px_70px_-18px_rgba(255,102,0,0.5),0_8px_30px_-10px_rgba(0,0,0,0.7)] sm:pl-5"
     >
-      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/15 text-primary ring-1 ring-primary/25">
         <Sparkles className="size-3.5" strokeWidth={2.25} />
       </span>
       <input
@@ -398,9 +483,9 @@ function InputBar({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={submitting}
-        placeholder={submitting ? "Asking…" : "Ask anything about YC companies…"}
+        placeholder={submitting ? "Asking…" : "Ask anything…"}
         aria-label="Ask anything"
-        className="flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed"
+        className="flex-1 bg-transparent text-[16px] text-foreground outline-none placeholder:text-foreground/55 disabled:cursor-not-allowed sm:text-[15px]"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
             e.preventDefault();
@@ -432,22 +517,17 @@ function InputBar({
 
 function Suggestions({ onPick }: { onPick: (s: string) => void }) {
   return (
-    <div className="ask-fade-up flex flex-col items-center gap-3 pt-6">
-      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70">
-        try
-      </span>
-      <div className="flex flex-wrap justify-center gap-1.5">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => onPick(s)}
-            className="rounded-full border border-border/70 bg-card/70 px-3 py-1 font-mono text-[10px] text-muted-foreground backdrop-blur transition-colors hover:border-primary/40 hover:text-foreground"
-          >
-            {s}
-          </button>
-        ))}
-      </div>
+    <div className="ask-fade-up flex flex-wrap justify-center gap-1.5 pt-5">
+      {SUGGESTIONS.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onPick(s)}
+          className="rounded-full border border-border bg-card px-3 py-1.5 font-mono text-[10.5px] text-foreground/85 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] transition-colors hover:border-primary/50 hover:bg-[color:var(--bg-soft)] hover:text-foreground"
+        >
+          {s}
+        </button>
+      ))}
     </div>
   );
 }

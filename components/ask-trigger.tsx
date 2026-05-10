@@ -13,6 +13,7 @@ export function AskTrigger() {
       aria-label="Open Ask Atlas"
       aria-hidden={askOpen}
       tabIndex={askOpen ? -1 : 0}
+      data-ask-trigger="desktop"
       className={`group relative hidden h-9 w-[320px] items-center gap-2.5 overflow-hidden rounded-full border border-border/80 bg-card/60 pr-1.5 pl-3.5 text-left transition-[opacity,border-color,background-color,box-shadow] duration-150 hover:border-primary/40 hover:bg-card/90 hover:shadow-[0_4px_24px_-12px_rgba(255,102,0,0.45)] focus:outline-none focus-visible:border-primary/60 focus-visible:shadow-[0_4px_24px_-12px_rgba(255,102,0,0.55)] md:flex ${askOpen ? "pointer-events-none opacity-0" : "opacity-100"}`}
     >
       <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">

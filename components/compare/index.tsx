@@ -93,8 +93,8 @@ export function Compare() {
   const baseline = cohorts[0] ?? null;
 
   return (
-    <div className="scroll-fine h-full overflow-y-auto">
-      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+    <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-4 pb-7 pt-4 sm:px-5 sm:pt-5">
         <div className="page-head">
           <div>
             <div className="eyebrow">
@@ -339,7 +339,9 @@ const KPIS: Kpi[] = [
 function KpiGrid({ cohorts }: { cohorts: CohortMetrics[] }) {
   const baseline = cohorts[0];
   return (
-    <div className="mt-4 overflow-hidden rounded-[10px] border border-border bg-card">
+    <>
+      <KpiGridMobile cohorts={cohorts} />
+      <div className="mt-4 hidden overflow-hidden rounded-[10px] border border-border bg-card md:block">
       <div
         className="grid"
         style={{
@@ -448,6 +450,117 @@ function KpiGrid({ cohorts }: { cohorts: CohortMetrics[] }) {
           );
         })}
       </div>
+      </div>
+    </>
+  );
+}
+
+function KpiGridMobile({ cohorts }: { cohorts: CohortMetrics[] }) {
+  const baseline = cohorts[0];
+  return (
+    <div className="mt-4 flex flex-col gap-3 md:hidden">
+      {cohorts.map((c, i) => {
+        const isBase = i === 0;
+        return (
+          <div
+            key={c.short}
+            className={cn(
+              "overflow-hidden rounded-[10px] border bg-card",
+              isBase
+                ? "border-[color:var(--primary-line)]"
+                : "border-border",
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-baseline justify-between gap-2 border-b border-border px-4 py-3",
+                isBase &&
+                  "bg-[color-mix(in_oklab,var(--primary)_5%,var(--bg-soft))]",
+              )}
+            >
+              <div className="flex flex-col">
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">
+                  {isBase ? "baseline" : `peer ${i}`}
+                </span>
+                <span className="text-[20px] font-medium tracking-tight text-foreground">
+                  {c.short}
+                </span>
+              </div>
+              <div className="text-right font-mono text-[10.5px] text-muted-foreground">
+                <div>{c.batch}</div>
+                <div className="text-faint">{c.ageLabel}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-border">
+              {KPIS.map((kpi, ki) => {
+                const val = kpi.get(c);
+                const baseVal = kpi.get(baseline);
+                const insufficient = val === null;
+                const delta =
+                  isBase || val === null || baseVal === null
+                    ? null
+                    : val - baseVal;
+                let deltaText: string | null = null;
+                if (delta != null && val !== null && baseVal !== null) {
+                  if (Math.abs(delta) < 0.05) {
+                    deltaText = "—";
+                  } else if (kpi.kind === "percent") {
+                    deltaText = `${delta > 0 ? "▲" : "▼"} ${Math.abs(delta).toFixed(Math.abs(delta) >= 10 ? 0 : 1)} pts`;
+                  } else {
+                    const rel = baseVal === 0 ? null : (delta / baseVal) * 100;
+                    deltaText =
+                      rel == null
+                        ? null
+                        : `${delta > 0 ? "▲" : "▼"} ${Math.abs(rel).toFixed(Math.abs(rel) >= 10 ? 0 : 1)}%`;
+                  }
+                }
+                return (
+                  <div
+                    key={kpi.id}
+                    className={cn(
+                      "px-4 py-3",
+                      ki >= 2 && "border-t border-border",
+                    )}
+                  >
+                    <div className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-faint">
+                      {kpi.label}
+                    </div>
+                    {insufficient ? (
+                      <>
+                        <div className="mt-1 text-[18px] font-medium tracking-tight tabular-nums text-faint">
+                          —
+                        </div>
+                        <div className="mt-0.5 font-mono text-[9.5px] text-faint">
+                          not enough data
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mt-1 text-[18px] font-medium tracking-tight tabular-nums text-foreground">
+                          {kpi.fmt(val)}
+                        </div>
+                        {deltaText && delta != null && (
+                          <div
+                            className={cn(
+                              "mt-0.5 font-mono text-[10px] tabular-nums",
+                              delta > 0 && "text-[color:var(--status-active)]",
+                              delta < 0 && "text-[color:var(--status-inactive)]",
+                              Math.abs(delta) < 0.05 &&
+                                "text-muted-foreground",
+                            )}
+                          >
+                            {deltaText}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -644,9 +757,9 @@ function LensCard({
         )}
       >
         <div
-          className="grid items-baseline gap-3 border-b border-border pb-1.5 px-1 font-mono text-[9px] uppercase tracking-[0.16em] text-faint"
+          className="grid items-baseline gap-2 border-b border-border pb-1.5 px-1 font-mono text-[9px] uppercase tracking-[0.16em] text-faint sm:gap-3"
           style={{
-            gridTemplateColumns: `110px repeat(${cohorts.length}, minmax(0, 1fr))`,
+            gridTemplateColumns: `clamp(72px, 24%, 110px) repeat(${cohorts.length}, minmax(0, 1fr))`,
           }}
         >
           <span>{config.rowLabel}</span>
@@ -729,9 +842,9 @@ function CompRow({
   const baseV = getter(cohorts[0], row.id);
   return (
     <div
-      className="grid items-center gap-3 rounded px-1 py-1.5 transition-colors hover:bg-[color:var(--bg-soft)]"
+      className="grid items-center gap-2 rounded px-1 py-1.5 transition-colors hover:bg-[color:var(--bg-soft)] sm:gap-3"
       style={{
-        gridTemplateColumns: `110px repeat(${cohorts.length}, minmax(0, 1fr))`,
+        gridTemplateColumns: `clamp(72px, 24%, 110px) repeat(${cohorts.length}, minmax(0, 1fr))`,
       }}
     >
       <span className="inline-flex items-center gap-2 font-mono text-[11.5px] text-foreground">

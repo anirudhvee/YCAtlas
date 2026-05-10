@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCompanies } from "@/components/companies-provider";
 import { useFilteredCompanies, useUi } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
@@ -166,8 +166,8 @@ export function Heatmap() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-border px-5 pt-5 pb-3">
-        <div className="mx-auto max-w-[1480px]">
+      <div className="border-b border-border pb-3 pt-4 sm:pt-5">
+        <div className="mx-auto max-w-[1480px] px-4 sm:px-5">
           <div className="page-head">
             <div>
               <div className="eyebrow">
@@ -176,36 +176,41 @@ export function Heatmap() {
               </div>
               <h1>What gets built, when</h1>
               <div className="sub">
-                Cell shade = company count. Click a cell to filter Atlas by
-                that batch and row; switch axes to slice differently.
+                Cell shade = company count. Tap a cell to filter; switch axes
+                to slice differently.
               </div>
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[11px]">
-            <span className="text-muted-foreground">rows:</span>
-            {ROW_OPTIONS.map((opt) => {
-              const active = axis === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    setAxis(opt.id);
-                    setHover(null);
-                  }}
-                  aria-pressed={active}
-                  className={cn("pill-btn", active && "active")}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
+        </div>
+        <div className="scroll-x-hidden mt-3 flex items-center gap-2.5 overflow-x-auto px-4 font-mono text-[11px] sm:flex-wrap sm:gap-3 sm:overflow-visible sm:px-5">
+          <span className="shrink-0 text-muted-foreground">rows:</span>
+          {ROW_OPTIONS.map((opt) => {
+            const active = axis === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  setAxis(opt.id);
+                  setHover(null);
+                }}
+                aria-pressed={active}
+                className={cn("pill-btn shrink-0", active && "active")}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+          <div className="hidden sm:block">
             <RampLegend max={data.max} />
           </div>
         </div>
+        <div className="mt-2 px-4 sm:hidden">
+          <RampLegend max={data.max} />
+        </div>
       </div>
 
-      <div className="mx-auto w-full max-w-[1480px] flex-1 overflow-hidden px-5 py-5">
+      <div className="mx-auto w-full max-w-[1480px] flex-1 overflow-hidden px-3 py-4 with-bottom-nav sm:px-5 sm:py-5">
         {data.rowLabels.length === 0 || data.cols.length === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             Not enough data · refine filter
@@ -279,7 +284,17 @@ function HeatmapMatrix({
   const sharedRowTemplate = `20px repeat(${N}, minmax(34px, 1fr))`;
   const labelsScrollRef = useRef<HTMLDivElement | null>(null);
   const dataScrollRef = useRef<HTMLDivElement | null>(null);
+  const [labelsWidth, setLabelsWidth] = useState(110);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const apply = () => setLabelsWidth(mq.matches ? 84 : 110);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
+  const [hasLeftOverflow, setHasLeftOverflow] = useState(false);
+  const [hasRightOverflow, setHasRightOverflow] = useState(false);
   const handleDataScroll = () => {
     const labels = labelsScrollRef.current;
     const dataEl = dataScrollRef.current;
@@ -287,7 +302,28 @@ function HeatmapMatrix({
     if (labels.scrollTop !== dataEl.scrollTop) {
       labels.scrollTop = dataEl.scrollTop;
     }
+    const left = dataEl.scrollLeft > 1;
+    const right = dataEl.scrollLeft + dataEl.clientWidth < dataEl.scrollWidth - 1;
+    setHasLeftOverflow((prev) => (prev === left ? prev : left));
+    setHasRightOverflow((prev) => (prev === right ? prev : right));
   };
+
+  // Snap to the right end so recent batches are visible without dragging.
+  // Depends on column count, NOT on `axis` — switching axes keeps the
+  // batch column set the same, so we intentionally don't re-snap and
+  // preserve the user's current scroll position within a session.
+  useEffect(() => {
+    const el = dataScrollRef.current;
+    if (!el) return;
+    const id = requestAnimationFrame(() => {
+      el.scrollLeft = el.scrollWidth;
+      setHasLeftOverflow(el.scrollLeft > 1);
+      setHasRightOverflow(
+        el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+      );
+    });
+    return () => cancelAnimationFrame(id);
+  }, [M]);
 
   return (
     <>
@@ -300,12 +336,12 @@ function HeatmapMatrix({
             }
           }}
           className="shrink-0 overflow-hidden"
-          style={{ width: 110 }}
+          style={{ width: labelsWidth }}
         >
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "110px",
+              gridTemplateColumns: `${labelsWidth}px`,
               gridTemplateRows: sharedRowTemplate,
               gap: "2px",
               minHeight: "100%",
@@ -330,11 +366,22 @@ function HeatmapMatrix({
           </div>
         </div>
 
-        <div
-          ref={dataScrollRef}
-          onScroll={handleDataScroll}
-          className="min-w-0 flex-1 overflow-auto"
-        >
+        <div className="relative min-w-0 flex-1">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-card to-transparent transition-opacity duration-150"
+            style={{ opacity: hasLeftOverflow ? 1 : 0 }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-card to-transparent transition-opacity duration-150"
+            style={{ opacity: hasRightOverflow ? 1 : 0 }}
+          />
+          <div
+            ref={dataScrollRef}
+            onScroll={handleDataScroll}
+            className="size-full overflow-auto"
+          >
           <div
             style={{
               display: "grid",
@@ -375,6 +422,7 @@ function HeatmapMatrix({
                 />
               );
             })}
+          </div>
           </div>
         </div>
       </div>

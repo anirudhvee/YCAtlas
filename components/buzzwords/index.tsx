@@ -72,8 +72,8 @@ export function Buzzwords() {
   const summaryPhrases = list.slice(0, 8).map((l) => l.phrase);
 
   return (
-    <div className="scroll-fine h-full overflow-y-auto">
-      <div className="mx-auto max-w-[1480px] px-5 pb-7 pt-5">
+    <div className="scroll-fine h-full overflow-x-hidden overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-4 pb-7 pt-4 sm:px-5 sm:pt-5">
         <div className="page-head">
           <div>
             <div className="eyebrow">
@@ -86,22 +86,19 @@ export function Buzzwords() {
           </div>
         </div>
 
-        <div className="mt-4 flex h-[300px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)]">
-          <div className="flex items-start justify-between gap-3">
+        <div className="mt-4 flex h-[320px] flex-col rounded-[10px] border border-border bg-card p-3.5 transition-colors hover:border-[color:var(--border-strong)] sm:h-[300px]">
+          <div className="flex flex-col items-start gap-2 md:flex-row md:items-start md:justify-between md:gap-3">
             <div className="flex flex-col gap-[3px]">
               <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-foreground">
                 All phrases
               </div>
               <div className="text-[12px] text-muted-foreground">
-                % of cohort mentioning the phrase · hover a line to isolate
+                % of cohort mentioning the phrase · tap a line to isolate
               </div>
             </div>
-            <div
-              className="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1 font-mono text-[10px] text-muted-foreground"
-              style={{ maxWidth: 360 }}
-            >
+            <div className="scroll-x-hidden -mx-1 flex w-full items-center gap-x-3 overflow-x-auto px-1 font-mono text-[10px] text-muted-foreground md:w-auto md:max-w-[360px] md:flex-wrap md:justify-end">
               {summaryPhrases.map((p, i) => (
-                <span key={p} className="inline-flex items-center gap-1.5">
+                <span key={p} className="inline-flex shrink-0 items-center gap-1.5">
                   <span
                     aria-hidden
                     className="inline-block size-2 rounded-sm"
@@ -121,7 +118,7 @@ export function Buzzwords() {
           </div>
         </div>
 
-        <div className="mt-3.5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map(({ phrase, removable }) => (
             <PhraseChart
               key={phrase}

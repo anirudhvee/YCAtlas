@@ -105,8 +105,8 @@ export function Wall() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-border px-5 pt-5 pb-3">
-        <div className="mx-auto max-w-[1480px]">
+      <div className="border-b border-border pb-3 pt-4 sm:pt-5">
+        <div className="mx-auto max-w-[1480px] px-4 sm:px-5">
           <div className="page-head">
             <div>
               <div className="eyebrow">
@@ -114,13 +114,17 @@ export function Wall() {
               </div>
               <h1>Every YC company at a glance</h1>
               <div className="sub">
-                Each tile is a company. Hover for details, click to open. Sort
-                and filter to slice by batch or status.
+                Each tile is a company. Tap to open. Sort and filter to slice by
+                batch or status.
               </div>
             </div>
+            <span className="hidden font-mono text-[11px] tabular-nums text-muted-foreground sm:inline">
+              {total.toLocaleString()} companies
+            </span>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-[11px]">
-          <span className="text-muted-foreground">sort:</span>
+        </div>
+        <div className="scroll-x-hidden mt-3 flex items-center gap-2 overflow-x-auto px-4 font-mono text-[11px] sm:flex-wrap sm:overflow-visible sm:px-5">
+          <span className="shrink-0 text-muted-foreground">sort:</span>
           {SORT_OPTIONS.map((opt) => {
             const active = sort === opt.id;
             return (
@@ -134,8 +138,8 @@ export function Wall() {
             );
           })}
 
-          <span className="divider-v mx-1" />
-          <span className="text-muted-foreground">batch:</span>
+          <span className="divider-v mx-1 hidden sm:inline-block" />
+          <span className="shrink-0 text-muted-foreground">batch:</span>
           <PillButton
             active={allBatchesActive}
             onClick={() => setFilters({ batches: [] })}
@@ -156,7 +160,7 @@ export function Wall() {
               const v = e.target.value;
               setFilters({ batches: v ? [v] : [] });
             }}
-            className="rounded border border-border bg-card px-2 py-0.5 text-[11px] text-foreground outline-none transition-colors hover:border-[color:var(--border-strong)] focus:border-[color:var(--primary-line)]"
+            className="shrink-0 rounded border border-border bg-card px-2 py-1 text-[12px] text-foreground outline-none transition-colors hover:border-[color:var(--border-strong)] focus:border-[color:var(--primary-line)] sm:py-0.5 sm:text-[11px]"
             aria-label="Pick batch"
           >
             <option value="">pick batch</option>
@@ -167,15 +171,14 @@ export function Wall() {
             ))}
           </select>
 
-          <span className="ml-auto tabular-nums text-muted-foreground">
+          <span className="hidden tabular-nums text-muted-foreground sm:ml-auto sm:inline-block">
             {total.toLocaleString()} companies
           </span>
-          </div>
         </div>
       </div>
 
-      <div className="scroll-fine flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1480px] px-5 py-5">
+      <div className="scroll-fine flex-1 overflow-x-hidden overflow-y-auto with-bottom-nav">
+        <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5 sm:py-5">
         {total === 0 ? (
           <div className="grid h-full place-items-center font-mono text-[11px] text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -192,10 +195,7 @@ export function Wall() {
         ) : (
           <>
             <div
-              className="grid gap-1"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))",
-              }}
+              className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(54px,1fr))] sm:gap-1 sm:[grid-template-columns:repeat(auto-fill,minmax(48px,1fr))]"
             >
               {cells.map((c) => (
                 <WallCell key={c.id} company={c} />
@@ -282,7 +282,7 @@ function WallCell({ company }: { company: Company }) {
         onBlur={close}
         onClick={() => setSelectedCompany(company)}
         className={cn(
-          "group/cell relative block size-12 origin-center rounded-sm",
+          "group/cell relative block aspect-square w-full origin-center rounded-sm sm:size-12 sm:w-auto",
           // No bg when there's an image; transparent PNGs sit directly
           // on canvas so non-square logos don't show a phantom square.
           !company.small_logo_thumb_url && "bg-muted/40",

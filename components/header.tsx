@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { AskTrigger } from "./ask-trigger";
 import { useUi } from "@/lib/store";
@@ -8,30 +9,54 @@ import { VIEWS } from "@/lib/views";
 
 export function Header() {
   const view = useUi((s) => s.view);
+  const setAskOpen = useUi((s) => s.setAskOpen);
+  const askOpen = useUi((s) => s.askOpen);
   const mounted = useMounted();
   const meta = VIEWS.find((v) => v.id === (mounted ? view : "overview"));
 
   return (
-    <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-between border-b border-border bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="flex items-center gap-3.5">
-        <span className="select-none font-mono text-[11.5px] font-semibold tracking-[0.22em] text-foreground">
+    <header
+      className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/85 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-4"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div className="flex min-w-0 items-center gap-3.5">
+        <span className="select-none font-mono text-[12px] font-semibold tracking-[0.22em] text-primary sm:text-[11.5px]">
           YC&nbsp;ATLAS
         </span>
-        <span className="divider-v" aria-hidden />
+        <span className="divider-v hidden sm:inline-block" aria-hidden />
         <div className="hidden items-center gap-2 font-mono text-[11px] sm:inline-flex">
           <span className="text-muted-foreground">{meta?.group ?? "Explore"}</span>
           <span className="text-faint">/</span>
           <span className="text-foreground">{meta?.label ?? "Overview"}</span>
         </div>
+        <span className="truncate font-mono text-[11px] text-muted-foreground sm:hidden">
+          {meta?.label ?? "Overview"}
+        </span>
       </div>
-      <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
+      <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 md:block">
         <div className="pointer-events-auto">
           <AskTrigger />
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1.5 md:gap-1">
+        <button
+          type="button"
+          onClick={() => setAskOpen(true)}
+          aria-label="Open Ask Atlas"
+          aria-hidden={askOpen}
+          tabIndex={askOpen ? -1 : 0}
+          data-ask-trigger="mobile"
+          className={`group inline-flex h-8 items-center gap-1.5 rounded-full border border-border/80 bg-card/60 pr-3 pl-2 text-left transition-[opacity,border-color,background-color,box-shadow] duration-150 hover:border-primary/40 hover:bg-card/90 hover:shadow-[0_4px_18px_-10px_rgba(255,102,0,0.5)] md:hidden ${askOpen ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        >
+          <span className="grid size-5 place-items-center rounded-full bg-primary/10 text-primary">
+            <Sparkles className="size-3" strokeWidth={2.25} />
+          </span>
+          <span className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground transition-colors group-hover:text-foreground">
+            Ask
+          </span>
+        </button>
         <ThemeToggle />
-        <span className="divider-v mx-1" aria-hidden />
+        <span className="divider-v mx-1 hidden sm:inline-block" aria-hidden />
         <a
           href="https://github.com/anirudhvee/YCAtlas"
           target="_blank"

@@ -93,23 +93,27 @@ export function DetailDrawer() {
         tabIndex={-1}
         onClick={() => setSelectedCompany(null)}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-[90] bg-black/20 transition-opacity duration-200",
+          "fixed inset-0 z-[90] bg-black/30 transition-opacity duration-200 sm:inset-x-0 sm:bottom-0 sm:top-[53px] sm:bg-black/20",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
-        style={{ top: 53 }}
       />
       <aside
         role="dialog"
         aria-modal="true"
         aria-hidden={!open}
         className={cn(
-          "fixed z-[95] flex flex-col overflow-hidden bg-card transition-transform duration-[250ms] ease-out",
-          "inset-x-0 bottom-0 w-full rounded-t-xl border-t border-border",
-          "sm:inset-x-auto sm:bottom-2.5 sm:right-2.5 sm:w-[420px] sm:rounded-xl sm:border sm:border-border",
-          open ? "translate-x-0" : "translate-x-[calc(100%+12px)]",
+          "fixed z-[95] flex flex-col overflow-hidden bg-card transition-transform duration-[260ms] ease-out",
+          "inset-x-0 bottom-0 max-h-[88vh] w-full rounded-t-2xl border-t border-border",
+          "sm:inset-x-auto sm:bottom-2.5 sm:right-2.5 sm:top-[62px] sm:w-[420px] sm:max-h-none sm:rounded-xl sm:border sm:border-border",
+          open
+            ? "translate-y-0 sm:translate-x-0 sm:translate-y-0"
+            : "translate-y-[calc(100%+12px)] sm:translate-x-[calc(100%+12px)] sm:translate-y-0",
         )}
-        style={{ top: 62 }}
       >
+        <div
+          aria-hidden
+          className="mx-auto mt-1.5 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden"
+        />
         {c?.top_company === true && (
           <>
             <div
