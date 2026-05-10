@@ -9,7 +9,7 @@ import {
   type FilterState,
   type ViewId,
 } from "@/lib/store";
-import { useFilters, useView } from "@/lib/url-state";
+import { useNavigateToView, useView } from "@/lib/url-state";
 import { AskTurn, type Turn } from "./ask-turn";
 import type { TurnEvent } from "./ask-event";
 
@@ -108,8 +108,8 @@ function getSafeAreaTopPx(): number {
 }
 
 export function AskPanel() {
-  const { setFilters, clearFilters } = useFilters();
-  const [, setView] = useView();
+  const [view] = useView();
+  const navigateToView = useNavigateToView();
   const open = useUi((s) => s.askOpen);
   const setAskOpen = useUi((s) => s.setAskOpen);
 
@@ -299,10 +299,9 @@ export function AskPanel() {
             if (evt.type === "done") break outer;
             applyEvent(turnId, evt, setTurns);
             if (evt.type === "filter") {
-              clearFilters();
-              if (evt.filter)
-                setFilters({ ...defaultFilters, ...evt.filter });
-              if (isViewId(evt.view)) setView(evt.view);
+              const targetView = isViewId(evt.view) ? evt.view : view;
+              const targetFilters = { ...defaultFilters, ...(evt.filter ?? {}) };
+              navigateToView(targetView, { filters: targetFilters });
               setTimeout(() => closePanel(), 1700);
             }
           }
@@ -336,7 +335,7 @@ export function AskPanel() {
         );
       }
     },
-    [clearFilters, closePanel, setFilters, setView, submitting, turns],
+    [closePanel, navigateToView, submitting, turns, view],
   );
 
   const newConversation = useCallback(() => {
