@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useView } from "@/lib/url-state";
+import { useView, viewToPath } from "@/lib/url-state";
 import { useMounted } from "@/lib/use-mounted";
 import { VIEW_GROUPS, VIEWS, type ViewMeta } from "@/lib/views";
 import type { ViewId } from "@/lib/store";
 import { useCompanies } from "@/components/companies-provider";
 import { StatsCard } from "@/components/stats-card";
+import { Copyright } from "@/components/attribution";
 import {
   aggregateByBatch,
   aggregatesAboveMinSize,
@@ -49,10 +51,15 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
         {primary.map(({ id, label, icon: Icon }) => {
           const active = view === id;
           return (
-            <button
+            <Link
               key={id}
-              type="button"
-              onClick={() => setView(id)}
+              href={viewToPath(id)}
+              prefetch={false}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                setView(id);
+              }}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "group/tab flex flex-1 flex-col items-center justify-center gap-0.5 px-1 transition-colors",
@@ -74,7 +81,7 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
               >
                 {label}
               </span>
-            </button>
+            </Link>
           );
         })}
         <button
@@ -202,10 +209,16 @@ function MoreSheet({
                 {items.map(({ id, label, icon: Icon }) => {
                   const active = id === currentView;
                   return (
-                    <button
+                    <Link
                       key={id}
-                      type="button"
-                      onClick={() => onPick(id)}
+                      href={viewToPath(id)}
+                      prefetch={false}
+                      onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                        e.preventDefault();
+                        onPick(id);
+                      }}
+                      aria-current={active ? "page" : undefined}
                       className={cn(
                         "flex items-center gap-2.5 rounded-lg border px-3 py-3 text-left transition-colors",
                         active
@@ -228,7 +241,7 @@ function MoreSheet({
                       >
                         {label}
                       </span>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -241,6 +254,7 @@ function MoreSheet({
               batchRange={range}
               size="comfortable"
             />
+            <Copyright size="comfortable" />
           </div>
         </div>
       </div>

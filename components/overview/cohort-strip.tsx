@@ -117,7 +117,7 @@ export function CohortStrip() {
                 onClick={() => handleClick(agg)}
                 style={{ height: `${(agg.total / maxTotal) * 100}%` }}
                 className={cn(
-                  "flex-1 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                  "relative flex-1 rounded-sm transition-colors before:absolute before:inset-x-0 before:bottom-0 before:h-6 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                   isSelected
                     ? "bg-primary"
                     : hasSelection

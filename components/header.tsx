@@ -19,8 +19,21 @@ export function Header() {
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex min-w-0 items-center gap-3.5">
-        <span className="select-none font-mono text-[12px] font-semibold tracking-[0.22em] text-primary sm:text-[11.5px]">
-          YC&nbsp;ATLAS
+        <span
+          role="img"
+          aria-label="YC ATLAS"
+          className="select-none font-mono text-[16px] font-semibold tracking-[0.18em] text-primary sm:text-[15.5px]"
+        >
+          <span aria-hidden>YC&nbsp;</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icon.svg"
+            alt=""
+            aria-hidden
+            className="inline-block h-[0.7em] w-[0.7em] align-baseline"
+            draggable={false}
+          />
+          <span aria-hidden>TLAS</span>
         </span>
         <span className="divider-v hidden sm:inline-block" aria-hidden />
         <div className="hidden items-center gap-2 font-mono text-[11px] sm:inline-flex">

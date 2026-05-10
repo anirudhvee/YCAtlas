@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { useCompanies } from "@/components/companies-provider";
 import { AttributionBlock } from "@/components/attribution";
 import {
@@ -32,7 +33,7 @@ export function StatsCard({
   const labelSize = isComfy ? "text-[12px]" : "text-[10.5px]";
   const numberSize = isComfy ? "text-[20px]" : "text-[16px]";
   const sparkH = isComfy ? 28 : 22;
-  const sourceSize = isComfy ? "text-[11px]" : "text-[10px]";
+  const sourceSize = isComfy ? "text-[13px]" : "text-[8px]";
 
   return (
     <div
@@ -66,9 +67,18 @@ export function StatsCard({
         href="https://github.com/yc-oss/api"
         target="_blank"
         rel="noopener noreferrer"
-        className={`${sourceSize} block text-faint transition-colors hover:text-primary`}
+        className={`${sourceSize} group inline-flex items-baseline gap-1 text-faint transition-colors hover:text-foreground`}
       >
-        source · yc-oss/api
+        <span>
+          Data from{" "}
+          <span className="text-muted-foreground transition-colors group-hover:text-primary">
+            yc-oss/api
+          </span>
+        </span>
+        <ArrowUpRight
+          className="size-2.5 translate-y-[1px] transition-colors group-hover:text-primary"
+          strokeWidth={1.75}
+        />
       </a>
       <AttributionBlock size={size} />
     </div>

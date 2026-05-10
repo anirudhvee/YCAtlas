@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useView } from "@/lib/url-state";
+import { useView, viewToPath } from "@/lib/url-state";
 import { VIEW_GROUPS, VIEWS } from "@/lib/views";
 import { StatsCard } from "@/components/stats-card";
+import { Copyright } from "@/components/attribution";
 
 interface SidebarProps {
   totalCompanies: number;
@@ -38,10 +40,16 @@ export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
             {items.map(({ id, label, icon: Icon, kbd }) => {
               const active = id === view;
               return (
-                <button
+                <Link
                   key={id}
-                  type="button"
-                  onClick={() => setView(id)}
+                  href={viewToPath(id)}
+                  prefetch={false}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                    e.preventDefault();
+                    setView(id);
+                  }}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors",
                     active
@@ -75,7 +83,7 @@ export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
                   >
                     {kbd}
                   </span>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -88,6 +96,7 @@ export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
           batchRange={batchRange}
           size="compact"
         />
+        <Copyright size="compact" />
       </div>
     </aside>
   );

@@ -1,4 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
+import { COPYRIGHT_YEAR, SITE_AUTHOR_URL } from "@/lib/seo";
 
 export function AttributionBlock({
   size = "compact",
@@ -6,46 +7,44 @@ export function AttributionBlock({
   size?: "compact" | "comfortable";
 }) {
   const isComfy = size === "comfortable";
-  const linkSize = isComfy ? "text-[12px]" : "text-[10px]";
-  const metaSize = isComfy ? "text-[10.5px]" : "text-[9px]";
-  const iconSize = isComfy ? "size-3" : "size-2.5";
-  const xButtonSize = isComfy ? "size-6" : "size-5";
+  const linkSize = isComfy ? "text-[13px]" : "text-[8px]";
+  const metaSize = isComfy ? "text-[11px]" : "text-[8px]";
+  const arrowSize = isComfy ? "size-[14px]" : "size-[8px]";
+  const iconSize = isComfy ? "size-[15px]" : "size-[9px]";
+  const iconBtn = isComfy ? "size-8" : undefined;
+  const iconGap = isComfy ? "gap-1" : "gap-0.5";
 
   return (
-    <div className={`mt-2.5 flex flex-col gap-1.5 leading-snug ${linkSize}`}>
-      <a
-        href="https://www.anirudhvee.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group inline-flex flex-wrap items-baseline gap-x-1 text-muted-foreground transition-colors hover:text-foreground"
+    <div className="mt-2.5 flex flex-col gap-1 leading-snug">
+      <div
+        className={`flex w-full items-center gap-1.5 whitespace-nowrap ${linkSize}`}
       >
-        <span>Built by</span>
-        <span className="inline-flex items-baseline gap-0.5 text-foreground transition-colors group-hover:text-primary">
-          <span>Anirudh Venkatachalam</span>
+        <a
+          href={SITE_AUTHOR_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex shrink-0 items-baseline gap-x-1 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <span>Built by</span>
+          <span className="text-foreground transition-colors group-hover:text-primary">
+            Anirudh Venkatachalam
+          </span>
           <ArrowUpRight
-            className={`${iconSize} translate-y-[1px] text-faint transition-colors group-hover:text-primary`}
+            className={`${arrowSize} translate-y-[1px] text-faint transition-colors group-hover:text-primary`}
             strokeWidth={1.75}
           />
-        </span>
-      </a>
-      <div
-        className={`truncate whitespace-nowrap tracking-tight text-faint ${metaSize}`}
-      >
-        Not affiliated with Y Combinator
-      </div>
-      <div className={`flex items-center justify-between gap-2 text-faint`}>
-        <span
-          className={`truncate whitespace-nowrap tracking-tight ${metaSize}`}
-        >
-          © 2026 Anirudh Venkatachalam
-        </span>
-        <div className="flex shrink-0 items-center gap-0.5">
+        </a>
+        <div className={`ml-auto flex shrink-0 items-center ${iconGap}`}>
           <a
             href="https://github.com/anirudhvee"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Anirudh on GitHub"
-            className={`grid ${xButtonSize} place-items-center rounded-md text-muted-foreground transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground`}
+            className={
+              isComfy
+                ? `grid ${iconBtn} place-items-center rounded-md text-faint transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground`
+                : "text-faint transition-colors hover:text-foreground"
+            }
           >
             <GithubGlyph className={iconSize} />
           </a>
@@ -54,12 +53,37 @@ export function AttributionBlock({
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Anirudh on X"
-            className={`grid ${xButtonSize} place-items-center rounded-md text-muted-foreground transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground`}
+            className={
+              isComfy
+                ? `grid ${iconBtn} place-items-center rounded-md text-faint transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground`
+                : "text-faint transition-colors hover:text-foreground"
+            }
           >
             <XMark className={iconSize} />
           </a>
         </div>
       </div>
+      <div
+        className={`truncate whitespace-nowrap tracking-tight text-faint ${metaSize}`}
+      >
+        Not affiliated with Y Combinator
+      </div>
+    </div>
+  );
+}
+
+export function Copyright({
+  size = "compact",
+}: {
+  size?: "compact" | "comfortable";
+}) {
+  const cls =
+    size === "comfortable" ? "text-[10.5px]" : "text-[9.5px]";
+  return (
+    <div
+      className={`mt-2 text-center font-mono tracking-tight text-faint ${cls}`}
+    >
+      © {COPYRIGHT_YEAR} Anirudh Venkatachalam
     </div>
   );
 }
