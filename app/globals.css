@@ -388,16 +388,20 @@
   transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 140ms;
 }
 
-/* Subtle scrollbar inside scrollable canvases */
+/* Auto-hiding scrollbar: invisible until the container is hovered. */
+.scroll-fine { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.scroll-fine:hover { scrollbar-color: var(--border-strong) transparent; }
 .scroll-fine::-webkit-scrollbar { width: 10px; height: 10px; }
 .scroll-fine::-webkit-scrollbar-track { background: transparent; }
 .scroll-fine::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: transparent;
   border-radius: 999px;
   border: 2px solid var(--background);
+  transition: background-color 140ms;
 }
+.scroll-fine:hover::-webkit-scrollbar-thumb { background: var(--border-strong); }
 .scroll-fine::-webkit-scrollbar-thumb:hover { background: var(--fg-faint); }
-/* Below lg, hide the scrollbar so its 10px gutter doesn't shift content
+/* Below lg, hide the scrollbar entirely so its gutter doesn't shift content
    off-center. Real touch devices don't render one. */
 @media (max-width: 1023px) {
   .scroll-fine { -ms-overflow-style: none; scrollbar-width: none; }
