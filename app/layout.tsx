@@ -25,6 +25,7 @@ import {
   SITE_URL,
   TWITTER_HANDLE,
 } from "@/lib/seo";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -237,6 +238,7 @@ export default async function RootLayout({
             </CompaniesProvider>
           </NuqsAdapter>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
