@@ -106,7 +106,7 @@ export function batchYearSpan(companies: Company[]): number {
     if (y > max) max = y;
   }
   if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
-  return Math.max(0, max - min + 1);
+  return Math.max(0, max - min);
 }
 
 export function findLatestBatch(
