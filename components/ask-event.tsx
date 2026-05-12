@@ -1,9 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDown, Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { type FilterState, type ViewId } from "@/lib/store";
 import { batchToShort } from "@/lib/utils";
+
+function renderInline(text: string): ReactNode[] {
+  const regex = /(\*\*([^*\n]+)\*\*|`([^`\n]+)`|(?<![*\w])\*([^*\n]+)\*(?!\w))/g;
+  const nodes: ReactNode[] = [];
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIdx) nodes.push(text.slice(lastIdx, match.index));
+    if (match[2] !== undefined) {
+      nodes.push(
+        <strong key={key++} className="font-semibold text-foreground">
+          {match[2]}
+        </strong>,
+      );
+    } else if (match[3] !== undefined) {
+      nodes.push(
+        <code
+          key={key++}
+          className="rounded bg-muted/60 px-1 py-0.5 font-mono text-[0.92em]"
+        >
+          {match[3]}
+        </code>,
+      );
+    } else if (match[4] !== undefined) {
+      nodes.push(<em key={key++}>{match[4]}</em>);
+    }
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) nodes.push(text.slice(lastIdx));
+  return nodes;
+}
 
 export type TurnEvent =
   | { kind: "thinking"; text: string }
@@ -119,7 +151,7 @@ function Thinking({
   }
   return (
     <p className="ask-fade-up whitespace-pre-wrap text-[15px] leading-[1.55] text-foreground">
-      {text}
+      {renderInline(text)}
       {streaming && <span className="ask-cursor">▌</span>}
     </p>
   );
@@ -200,7 +232,7 @@ function safeStringify(v: unknown): string {
 function Final({ answer }: { answer: string }) {
   return (
     <p className="ask-fade-up whitespace-pre-wrap text-[15px] leading-[1.55] text-foreground">
-      {answer}
+      {renderInline(answer)}
     </p>
   );
 }
