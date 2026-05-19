@@ -113,18 +113,19 @@ const JSON_LD = {
   "@graph": [
     {
       "@type": "WebSite",
-      "@id": `${SITE_URL}#website`,
-      url: SITE_URL,
+      "@id": `${SITE_URL}/`,
+      url: `${SITE_URL}/`,
       name: SITE_NAME,
+      alternateName: ["YCAtlas", "YC-Atlas"],
       description: SITE_TAGLINE,
-      publisher: { "@id": `${SITE_URL}#person` },
+      publisher: { "@id": SITE_AUTHOR_URL },
       inLanguage: "en-US",
     },
     {
       "@type": "WebApplication",
-      "@id": `${SITE_URL}#app`,
+      "@id": `${SITE_URL}/#app`,
       name: SITE_NAME,
-      url: SITE_URL,
+      url: `${SITE_URL}/`,
       applicationCategory: "BusinessApplication",
       operatingSystem: "Any",
       browserRequirements: "Requires JavaScript. Requires HTML5.",
@@ -139,7 +140,7 @@ const JSON_LD = {
         "Industry × batch heatmap",
         "All-time leaderboards",
       ],
-      author: { "@id": `${SITE_URL}#person` },
+      author: { "@id": SITE_AUTHOR_URL },
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       about: {
         "@type": "Organization",
@@ -162,7 +163,7 @@ const JSON_LD = {
     },
     {
       "@type": "Person",
-      "@id": `${SITE_URL}#person`,
+      "@id": SITE_AUTHOR_URL,
       name: SITE_AUTHOR,
       url: SITE_AUTHOR_URL,
     },
@@ -209,7 +210,9 @@ export default async function RootLayout({
         <link rel="preload" as="fetch" href="/api/companies" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c"),
+          }}
         />
         {process.env.NODE_ENV !== "production" && (
           <script
