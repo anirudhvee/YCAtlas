@@ -118,8 +118,23 @@ const JSON_LD = {
       name: SITE_NAME,
       alternateName: ["YCAtlas", "YC-Atlas"],
       description: SITE_TAGLINE,
-      publisher: { "@id": SITE_AUTHOR_URL },
+      publisher: { "@id": `${SITE_URL}/#org` },
       inLanguage: "en-US",
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#org`,
+      name: SITE_NAME,
+      alternateName: ["YCAtlas", "YC-Atlas"],
+      url: `${SITE_URL}/`,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}${OG_IMAGE}`,
+        width: OG_IMAGE_WIDTH,
+        height: OG_IMAGE_HEIGHT,
+      },
+      sameAs: ["https://github.com/anirudhvee/YCAtlas"],
+      founder: { "@id": SITE_AUTHOR_URL },
     },
     {
       "@type": "WebApplication",
@@ -141,6 +156,7 @@ const JSON_LD = {
         "All-time leaderboards",
       ],
       author: { "@id": SITE_AUTHOR_URL },
+      publisher: { "@id": `${SITE_URL}/#org` },
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       about: {
         "@type": "Organization",
