@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Canvas } from "@/components/canvas";
 import { RouteSeo } from "@/components/route-seo";
+import { ViewContent } from "@/components/seo/view-content";
 import {
   OG_IMAGE,
   OG_IMAGE_ALT,
@@ -45,6 +46,7 @@ export default function Home() {
       <Suspense fallback={null}>
         <Canvas />
       </Suspense>
+      <ViewContent view="overview" />
     </>
   );
 }

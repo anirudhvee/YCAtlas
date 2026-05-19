@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Canvas } from "@/components/canvas";
 import { RouteSeo } from "@/components/route-seo";
+import { ViewContent } from "@/components/seo/view-content";
 import { NON_OVERVIEW_VIEWS } from "@/lib/store";
 import {
   OG_IMAGE,
@@ -71,6 +72,7 @@ export default async function ViewPage({
       <Suspense fallback={null}>
         <Canvas />
       </Suspense>
+      <ViewContent view={view} />
     </>
   );
 }
