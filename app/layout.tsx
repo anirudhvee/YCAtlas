@@ -150,6 +150,14 @@ const JSON_LD = {
         "@type": "Dataset",
         name: "yc-oss/api",
         url: "https://github.com/yc-oss/api",
+        description:
+          "Open mirror of the Y Combinator companies directory, refreshed daily as JSON.",
+        creator: {
+          "@type": "Organization",
+          name: "yc-oss",
+          url: "https://github.com/yc-oss",
+        },
+        license: "https://github.com/yc-oss/api/blob/main/LICENSE",
       },
     },
     {

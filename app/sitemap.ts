@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
+import { cacheLife } from "next/cache";
 import { NON_OVERVIEW_VIEWS } from "@/lib/store";
 import { SITE_URL } from "@/lib/seo";
 
-const lastModified = new Date();
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  "use cache";
+  cacheLife("days");
 
-export default function sitemap(): MetadataRoute.Sitemap {
+  const lastModified = new Date();
   return [
     {
       url: SITE_URL,
