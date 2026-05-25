@@ -1,5 +1,5 @@
 import { loadCompanies } from "./data";
-import { primaryRegion } from "./overview-data";
+import { extractCity, primaryRegion } from "./overview-data";
 import { VIEW_IDS } from "./store";
 import { VIEWS } from "./views";
 import { batchToShort, batchToSortKey } from "./utils";
@@ -21,6 +21,7 @@ const VIEW_DESCRIPTIONS: Record<(typeof VIEW_IDS)[number], string> = {
 };
 
 const TOP_TAG_COUNT = 30;
+const TOP_CITY_COUNT = 70;
 
 function uniqueValues(values: string[]): string[] {
   const set = new Set<string>();
@@ -74,6 +75,17 @@ export async function buildSystemContext(): Promise<SystemContext> {
     .slice(0, TOP_TAG_COUNT)
     .map(([t]) => t);
 
+  const cityCounts = new Map<string, number>();
+  for (const c of companies) {
+    const city = extractCity(c.all_locations);
+    if (!city) continue;
+    cityCounts.set(city, (cityCounts.get(city) ?? 0) + 1);
+  }
+  const topCities = [...cityCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TOP_CITY_COUNT)
+    .map(([c]) => c);
+
   const viewLines = VIEWS.map(
     (v) => `- ${v.id} ("${v.label}"): ${VIEW_DESCRIPTIONS[v.id]}`,
   ).join("\n");
@@ -121,6 +133,19 @@ Use other views only when the user explicitly invokes them or the topic clearly 
 
 Never pick \`view: "overview"\` as a fallback when the user said "show me X" — overview hides the list of matching companies behind aggregate tiles, which defeats the user's intent.
 
+# APPLY_TO_DASHBOARD: NEVER FILTER TO AN EMPTY RESULT
+
+A filter is only useful if it matches companies. Build filters from values that actually exist in the INDUSTRIES / TOP TAGS / REGIONS / CITIES / STAGES inventories listed later in this prompt — do not invent category names.
+
+The user's phrasing is often not a real category. "Professional services automation", "vertical SaaS", "AI infra" are *descriptions*, not inventory values. When the phrase isn't an exact inventory value:
+1. Map it to the closest **real** value that exists (e.g. "professional services" → the matching INDUSTRIES entry, if one exists).
+2. If you're unsure whether a value yields any companies, call **run_query** first to check the count, then \`apply_to_dashboard\` with what you confirmed.
+3. If nothing real matches the request, do NOT apply a filter. Answer in one sentence that no YC companies match (after a run_query confirms it, if helpful).
+
+The runtime rejects any \`apply_to_dashboard\` whose filter matches 0 companies and asks you to reconsider — but treat that as a backstop, not a plan. Aim to apply only filters you already expect to have results.
+
+A "which companies / what companies are in X" question is a **question** → answer with **run_query** (which lets you confirm what exists), not a blind \`apply_to_dashboard\`.
+
 # CONVERSATION CONTEXT
 
 You receive the full prior turn history (alternating user / assistant messages, each annotated with the query that ran). Read it the way you would any natural conversation — using everything that came before to interpret what the user is now asking. Don't pattern-match on phrasings; understand what was discussed and decide whether the new turn is a continuation, drill-down, broadening, or pivot.
@@ -157,7 +182,8 @@ All array fields default to []; scalars default to null.
 - batches: long-form strings, e.g. "Winter 2023" (never short codes).
 - industries: top-level industry strings (see INDUSTRIES).
 - tags: Title Case tag strings exactly as YC ships them (see TOP TAGS).
-- regions: country/region strings (see REGIONS).
+- regions: **country/region** strings only (see REGIONS) — never a city.
+- cities: **city** strings (see CITIES). Use this, NOT regions, for any city-level location ("SF startups", "based in London", "in Bengaluru").
 - stage: funding stage strings (see STAGES).
 - top_company / hasFormerNames: boolean | null.
 - teamSizeMin / teamSizeMax: integer | null.
@@ -175,6 +201,7 @@ Word → field heuristics (memorize):
 - "AI" / "artificial intelligence" → tags: ["Artificial Intelligence"] (NOT industries)
 - "fintech" → industries: ["Fintech"]
 - "crypto" / "web3" / "blockchain" → tags: ["Crypto / Web3"]
+- a city ("SF companies", "based in London", "in Bengaluru", "NYC startups") → cities: ["<canonical city>"] (NOT regions). Map the user's wording to the canonical spelling in CITIES: old names (Madras → Chennai, Bangalore → Bengaluru, Bombay → Mumbai), abbreviations (SF / "the Bay" → San Francisco, NYC → New York, LA → Los Angeles), and obvious misspellings ("Banglore" → Bengaluru) all resolve to the canonical name. A country or region ("in India", "European companies") → regions, never cities.
 - view: one of ${VIEW_IDS.map((v) => `"${v}"`).join(" | ")}.
 - narration: one short sentence, sentence case, no trailing period.
 
@@ -256,6 +283,10 @@ ${stages.join(", ")}
 # REGIONS (${regions.length})
 
 ${regions.join(", ")}
+
+# CITIES (top ${topCities.length} of ${cityCounts.size})
+
+${topCities.join(", ")}
 
 # BATCHES (${batches.length})
 

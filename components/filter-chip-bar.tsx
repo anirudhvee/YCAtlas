@@ -75,6 +75,14 @@ export function FilterChipBar() {
       onRemove: () => toggleArrayFilter("regions", r),
     });
   }
+  for (const ct of effective.cities) {
+    chips.push({
+      key: `city:${ct}`,
+      k: "city",
+      v: ct,
+      onRemove: () => toggleArrayFilter("cities", ct),
+    });
+  }
   for (const g of effective.stage) {
     chips.push({
       key: `g:${g}`,

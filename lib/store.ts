@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Company } from "./types";
+import { canonicalCityName, extractCity } from "./overview-data";
 
 export const VIEW_IDS = [
   "overview",
@@ -45,6 +46,7 @@ export interface FilterState {
   industries: string[];
   tags: string[];
   regions: string[];
+  cities: string[];
   stage: string[];
   top_company: boolean | null;
   hasFormerNames: boolean | null;
@@ -60,6 +62,7 @@ export const defaultFilters: FilterState = {
   industries: [],
   tags: [],
   regions: [],
+  cities: [],
   stage: [],
   top_company: null,
   hasFormerNames: null,
@@ -75,6 +78,7 @@ export type ArrayFilterKey =
   | "industries"
   | "tags"
   | "regions"
+  | "cities"
   | "stage";
 
 interface UiStore {
@@ -104,6 +108,7 @@ export function isFilteringActive(filters: FilterState): boolean {
     filters.industries.length > 0 ||
     filters.tags.length > 0 ||
     filters.regions.length > 0 ||
+    filters.cities.length > 0 ||
     filters.stage.length > 0 ||
     filters.top_company !== null ||
     filters.hasFormerNames !== null ||
@@ -120,6 +125,9 @@ export function filterCompanies(
 ): Company[] {
   if (!isFilteringActive(filters)) return companies;
   const search = filters.search?.toLowerCase() ?? null;
+  const cityQueries = filters.cities.length
+    ? filters.cities.map((q) => canonicalCityName(q).toLowerCase())
+    : null;
   return companies.filter((c) => {
     if (filters.status.length && !filters.status.includes(c.status)) return false;
     if (filters.batches.length && !filters.batches.includes(c.batch)) return false;
@@ -133,6 +141,11 @@ export function filterCompanies(
       !filters.regions.some((r) => c.regions.includes(r))
     )
       return false;
+    if (cityQueries) {
+      // Cities live in all_locations, not c.regions (country-level only).
+      const city = extractCity(c.all_locations);
+      if (!city || !cityQueries.includes(city.toLowerCase())) return false;
+    }
     if (filters.top_company !== null) {
       const flag = c.top_company ?? false;
       if (flag !== filters.top_company) return false;

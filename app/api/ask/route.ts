@@ -8,6 +8,8 @@ import type {
 import { loadCompanies } from "@/lib/data";
 import {
   defaultFilters,
+  filterCompanies,
+  isFilteringActive,
   VIEW_IDS,
   type FilterState,
   type ViewId,
@@ -83,6 +85,7 @@ const applyToDashboardParameters = {
     "industries",
     "tags",
     "regions",
+    "cities",
     "stage",
     "top_company",
     "hasFormerNames",
@@ -101,6 +104,7 @@ const applyToDashboardParameters = {
     industries: { type: "array", items: { type: "string" } },
     tags: { type: "array", items: { type: "string" } },
     regions: { type: "array", items: { type: "string" } },
+    cities: { type: "array", items: { type: "string" } },
     stage: { type: "array", items: { type: "string" } },
     top_company: { type: ["boolean", "null"] },
     hasFormerNames: { type: ["boolean", "null"] },
@@ -169,6 +173,7 @@ interface ApplyToDashboardArgs {
   industries: string[];
   tags: string[];
   regions: string[];
+  cities: string[];
   stage: string[];
   top_company: boolean | null;
   hasFormerNames: boolean | null;
@@ -208,6 +213,7 @@ function coerceFilter(args: ApplyToDashboardArgs): {
       industries: arr(args.industries),
       tags: arr(args.tags),
       regions: arr(args.regions),
+      cities: arr(args.cities),
       stage: arr(args.stage),
       top_company: onlyTrue(args.top_company),
       hasFormerNames: onlyTrue(args.hasFormerNames),
@@ -498,14 +504,22 @@ export async function POST(req: Request) {
               return;
             }
             const { view, filter, narration } = coerceFilter(parsed);
-            send({
-              type: "filter",
-              view,
-              filter,
-              narration,
-            });
-            close();
-            return;
+            // A 0-match filter almost always means a made-up value; feed it
+            // back rather than steering the dashboard to a blank view.
+            const matched = isFilteringActive(filter)
+              ? filterCompanies(companies, filter).length
+              : companies.length;
+            if (matched > 0) {
+              send({
+                type: "filter",
+                view,
+                filter,
+                narration,
+              });
+              close();
+              return;
+            }
+            // 0 matches: fall through to feed the note back via the tool loop.
           }
 
           // Check for decline short-circuit.
@@ -555,6 +569,19 @@ export async function POST(req: Request) {
           });
 
           for (const call of toolCalls) {
+            if (call.name === "apply_to_dashboard") {
+              // Only reached for a 0-match apply; nudge the model to fix it.
+              messages.push({
+                role: "tool",
+                tool_call_id: call.id,
+                content: JSON.stringify({
+                  applied: false,
+                  matched: 0,
+                  note: "This filter matches 0 companies, so it was NOT applied. The value is most likely not in the dataset — verify it against INDUSTRIES / TOP TAGS / REGIONS / CITIES / STAGES. Either re-call apply_to_dashboard with a real, related value that has results, or reply in one short sentence that no YC companies match. Never apply a zero-result filter.",
+                }),
+              });
+              continue;
+            }
             if (call.name !== "run_query") {
               const errMsg = `Unknown tool: ${call.name}`;
               send({

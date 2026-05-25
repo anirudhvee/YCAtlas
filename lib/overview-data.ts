@@ -202,9 +202,16 @@ const NON_CITY_TOKENS = new Set([
 const CITY_ALIASES: Record<string, string> = {
   "New York City": "New York",
   "Tel Aviv-Yafo": "Tel Aviv",
-  Bangalore: "Bengaluru",
-  Bombay: "Mumbai",
 };
+
+const CITY_QUERY_ALIASES: Record<string, string> = Object.fromEntries(
+  Object.entries(CITY_ALIASES).map(([from, to]) => [from.toLowerCase(), to]),
+);
+
+export function canonicalCityName(query: string): string {
+  const trimmed = query.trim();
+  return CITY_QUERY_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+}
 
 // Country / state / region tokens that yc-oss occasionally lists in
 // the city slot. Plotting them at their geo-center fakes precision
