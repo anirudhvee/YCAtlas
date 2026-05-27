@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Gem } from "lucide-react";
+import posthog from "posthog-js";
 import { useUi } from "@/lib/store";
 import { useFilters } from "@/lib/url-state";
 import { useMounted } from "@/lib/use-mounted";
@@ -50,6 +51,14 @@ export function DetailDrawer() {
       setTrackedId(company.id);
       setShown(company);
       setSessionTags([]);
+      posthog.capture("company_viewed", {
+        company_id: company.id,
+        company_name: company.name,
+        company_batch: company.batch,
+        company_status: company.status,
+        company_industry: company.industry,
+        is_top_company: company.top_company === true,
+      });
     }
   } else if (trackedId !== null) {
     // Drawer just closed — clear trackedId so reopening the same company
@@ -81,6 +90,11 @@ export function DetailDrawer() {
   const c = shown;
 
   const handleTagClick = (tag: string) => {
+    posthog.capture("company_tag_filter_applied", {
+      tag,
+      company_id: shown?.id,
+      company_name: shown?.name,
+    });
     setSessionTags((s) => (s.includes(tag) ? s : [...s, tag]));
     toggleArrayFilter("tags", tag);
     setSelectedCompany(null);
@@ -374,6 +388,13 @@ function DrawerContents({
           href={company.url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() =>
+            posthog.capture("company_url_clicked", {
+              company_id: company.id,
+              company_name: company.name,
+              url: company.url,
+            })
+          }
           className="group/yc block w-full border-t border-border bg-card py-3 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-foreground transition-colors hover:bg-primary/5 hover:text-primary"
         >
           View on YC{" "}

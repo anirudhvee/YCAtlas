@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { MoreHorizontal, X } from "lucide-react";
+import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { useView, viewToPath } from "@/lib/url-state";
 import { useMounted } from "@/lib/use-mounted";
@@ -58,6 +59,7 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
               onClick={(e) => {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                 e.preventDefault();
+                posthog.capture("view_changed", { view: id, source: "bottom-nav" });
                 setView(id);
               }}
               aria-current={active ? "page" : undefined}
@@ -115,6 +117,7 @@ export function BottomNav({ totalCompanies, batchRange }: Props) {
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
         onPick={(id) => {
+          posthog.capture("view_changed", { view: id, source: "bottom-nav-more" });
           setView(id);
           setMoreOpen(false);
         }}

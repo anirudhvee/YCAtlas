@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useCompanies } from "@/components/companies-provider";
 import { useMemo } from "react";
+import posthog from "posthog-js";
 import { isFilteringActive } from "@/lib/store";
 import { useFilters, useFilteredCompanies } from "@/lib/url-state";
 import { canonicalCompanies } from "@/lib/overview-data";
@@ -153,7 +154,10 @@ export function FilterChipBar() {
         </span>
         <button
           type="button"
-          onClick={clearFilters}
+          onClick={() => {
+            posthog.capture("filter_cleared", { chip_count: chips.length });
+            clearFilters();
+          }}
           aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
           className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-destructive/35 bg-destructive/10 px-2.5 text-[11px] text-destructive transition-colors hover:bg-destructive/20"
         >
@@ -179,7 +183,10 @@ export function FilterChipBar() {
                 <span className="text-foreground">{c.v}</span>
                 <button
                   type="button"
-                  onClick={c.onRemove}
+                  onClick={() => {
+                    posthog.capture("filter_chip_removed", { filter_key: c.k, filter_value: c.v });
+                    c.onRemove();
+                  }}
                   aria-label={`Remove ${c.k}: ${c.v}`}
                   className="grid size-[18px] place-items-center rounded-full text-faint transition-colors hover:bg-[color:var(--bg-soft)] hover:text-foreground sm:size-4"
                 >
@@ -192,7 +199,10 @@ export function FilterChipBar() {
             </span>
             <button
               type="button"
-              onClick={clearFilters}
+              onClick={() => {
+                posthog.capture("filter_cleared", { chip_count: chips.length });
+                clearFilters();
+              }}
               aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
               className="hidden h-[22px] shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--primary-line)] bg-[color:var(--primary-soft)] px-2 text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:inline-flex"
             >

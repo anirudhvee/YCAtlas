@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
+import posthog from "posthog-js";
 import {
   defaultFilters,
   useUi,
@@ -179,6 +180,7 @@ export function AskPanel() {
 
   useEffect(() => {
     if (open) {
+      posthog.capture("ask_panel_opened");
       const t = setTimeout(() => inputRef.current?.focus(), 60);
       return () => clearTimeout(t);
     }
@@ -233,6 +235,11 @@ export function AskPanel() {
       const query = raw.trim();
       if (!query || submitting) return;
 
+      posthog.capture("ask_query_submitted", {
+        query_length: query.length,
+        turn_index: turns.length,
+      });
+
       const turnId = crypto.randomUUID();
       setSubmitting(true);
       setValue("");
@@ -265,6 +272,7 @@ export function AskPanel() {
             query,
             history,
             sessionId: sessionIdRef.current,
+            distinctId: posthog.get_distinct_id(),
           }),
           signal: controller.signal,
         });
@@ -339,10 +347,13 @@ export function AskPanel() {
   );
 
   const newConversation = useCallback(() => {
+    posthog.capture("ask_new_conversation_started", {
+      prior_turn_count: turns.length,
+    });
     setTurns([]);
     setValue("");
     inputRef.current?.focus();
-  }, []);
+  }, [turns.length]);
 
   return (
     <>
@@ -521,7 +532,10 @@ function Suggestions({ onPick }: { onPick: (s: string) => void }) {
         <button
           key={s}
           type="button"
-          onClick={() => onPick(s)}
+          onClick={() => {
+            posthog.capture("ask_suggestion_clicked", { suggestion: s });
+            onPick(s);
+          }}
           className="rounded-full border border-border bg-card px-3 py-1.5 font-mono text-[10.5px] text-foreground/85 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] transition-colors hover:border-primary/50 hover:bg-[color:var(--bg-soft)] hover:text-foreground"
         >
           {s}

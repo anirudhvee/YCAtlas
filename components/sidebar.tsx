@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { useView, viewToPath } from "@/lib/url-state";
 import { VIEW_GROUPS, VIEWS } from "@/lib/views";
@@ -47,6 +48,7 @@ export function Sidebar({ totalCompanies, batchRange }: SidebarProps) {
                   onClick={(e) => {
                     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                     e.preventDefault();
+                    posthog.capture("view_changed", { view: id, source: "sidebar" });
                     setView(id);
                   }}
                   aria-current={active ? "page" : undefined}

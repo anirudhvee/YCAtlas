@@ -1,10 +1,11 @@
-import OpenAI from "openai";
-import { NextResponse } from "next/server";
+import { OpenAI as PostHogOpenAI } from "@posthog/ai/openai";
+import { NextResponse, after } from "next/server";
 import type {
   ChatCompletionMessageParam,
   ChatCompletionTool,
   ChatCompletionMessageToolCall,
 } from "openai/resources/chat/completions";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { loadCompanies } from "@/lib/data";
 import {
   defaultFilters,
@@ -22,6 +23,16 @@ const RATE_LIMIT_PER_MINUTE = 12;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_ITERATIONS = 5;
 const MAX_HISTORY_TURNS = 5;
+
+// xAI pricing for grok-4-1-fast-reasoning (an alias of grok-4.3), in USD per
+// token. Source: GET https://api.x.ai/v1/language-models/grok-4-1-fast-reasoning
+// → prompt_text_token_price 12500, completion_text_token_price 25000; those
+// integer fields are USD-per-1M-tokens × 1e4, i.e. $1.25 / $2.50 per 1M. The
+// PostHog wrapper's cost override applies one flat input rate, so the cheaper
+// cached-token rate ($0.20/1M) and the >200K-token long-context surcharge (2×)
+// are not modeled — input cost is a slight over-estimate when caching kicks in.
+const GROK_INPUT_USD_PER_TOKEN = 1.25 / 1_000_000;
+const GROK_OUTPUT_USD_PER_TOKEN = 2.5 / 1_000_000;
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -255,6 +266,15 @@ interface AssemblingToolCall {
   arguments: string;
 }
 
+function activeFilterKeys(filter: FilterState): string[] {
+  return (Object.keys(filter) as (keyof FilterState)[]).filter((k) => {
+    const v = filter[k];
+    if (v === null || v === "") return false;
+    if (Array.isArray(v) && v.length === 0) return false;
+    return true;
+  });
+}
+
 export async function POST(req: Request) {
   const origin = req.headers.get("origin") ?? req.headers.get("referer");
   if (!isAllowedOrigin(origin)) {
@@ -269,20 +289,29 @@ export async function POST(req: Request) {
     );
   }
   const clientKey = getClientKey(req);
+
+  const phog = getPostHogClient();
+  // Keep the serverless invocation alive until queued events are delivered.
+  after(() => phog.flush().catch(() => {}));
+
+  // Rate-limit before parsing the body so a flood can't force large JSON
+  // parses. Keyed on IP, so the event uses the IP key (no forwarded id yet).
   if (!checkRateLimit(clientKey)) {
+    phog.capture({ distinctId: clientKey, event: "ask_query_rate_limited" });
     return NextResponse.json(
       { error: "Rate limit exceeded. Try again in a minute." },
       { status: 429 },
     );
   }
 
-  let body: { query?: unknown; history?: unknown; sessionId?: unknown };
+  let body: {
+    query?: unknown;
+    history?: unknown;
+    sessionId?: unknown;
+    distinctId?: unknown;
+  };
   try {
-    body = (await req.json()) as {
-      query?: unknown;
-      history?: unknown;
-      sessionId?: unknown;
-    };
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -290,17 +319,26 @@ export async function POST(req: Request) {
   if (!query) {
     return NextResponse.json({ error: "Missing 'query' string." }, { status: 400 });
   }
-  const sessionId =
-    typeof body.sessionId === "string" &&
-    /^[A-Za-z0-9_-]{8,128}$/.test(body.sessionId)
-      ? body.sessionId
-      : null;
   if (query.length > 500) {
     return NextResponse.json(
       { error: "Query is too long (max 500 chars)." },
       { status: 400 },
     );
   }
+  const sessionId =
+    typeof body.sessionId === "string" &&
+    /^[A-Za-z0-9_-]{8,128}$/.test(body.sessionId)
+      ? body.sessionId
+      : null;
+  // Forwarded browser distinct id keeps server events on the same person as
+  // the client-side events; fall back to the IP key only when absent.
+  const distinctId =
+    typeof body.distinctId === "string" &&
+    body.distinctId.length > 0 &&
+    body.distinctId.length <= 200
+      ? body.distinctId
+      : clientKey;
+
   const history = sanitizeHistory(body.history);
 
   let context;
@@ -318,12 +356,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const client = new OpenAI({
+  const client = new PostHogOpenAI({
     apiKey,
     baseURL: "https://api.x.ai/v1",
     timeout: REQUEST_TIMEOUT_MS,
     maxRetries: 1,
+    posthog: phog,
   });
+  // One trace per query; the session id groups a conversation's queries.
+  const traceId = crypto.randomUUID();
 
   const baseMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: context.prompt },
@@ -336,13 +377,24 @@ export async function POST(req: Request) {
   }
   baseMessages.push({ role: "user", content: query });
 
+  let iterations = 0;
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let cachedTokens = 0;
+  let totalTokens = 0;
+  let outcome = "incomplete";
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (event: Record<string, unknown>) => {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
-        );
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+          );
+        } catch {
+          // controller already closed (client disconnected) — drop the event
+        }
       };
 
       const messages = [...baseMessages];
@@ -384,6 +436,19 @@ export async function POST(req: Request) {
                     : "auto",
               stream: true,
               stream_options: { include_usage: true },
+              posthogDistinctId: distinctId,
+              posthogTraceId: traceId,
+              posthogProperties: {
+                iteration: iter,
+                ...(sessionId ? { $ai_session_id: sessionId } : {}),
+              },
+              // Wrapper hardcodes provider "openai"; relabel as xai and supply
+              // grok rates since PostHog can't auto-price xAI ($ai_*_cost_usd).
+              posthogProviderOverride: "xai",
+              posthogCostOverride: {
+                inputCost: GROK_INPUT_USD_PER_TOKEN,
+                outputCost: GROK_OUTPUT_USD_PER_TOKEN,
+              },
             },
             sessionId
               ? { headers: { "x-grok-conv-id": sessionId } }
@@ -441,6 +506,11 @@ export async function POST(req: Request) {
                   u.prompt_tokens_details?.cached_tokens ?? 0
                 } total=${u.total_tokens ?? 0}`,
               );
+              iterations += 1;
+              promptTokens += u.prompt_tokens ?? 0;
+              completionTokens += u.completion_tokens ?? 0;
+              cachedTokens += u.prompt_tokens_details?.cached_tokens ?? 0;
+              totalTokens += u.total_tokens ?? 0;
             }
             const choice = chunk.choices?.[0];
             if (!choice) continue;
@@ -491,13 +561,17 @@ export async function POST(req: Request) {
 
           if (toolCalls.length === 0) {
             if (phase.value === "suppressed") {
+              outcome = "suppressed";
               send({
                 type: "final",
                 answer:
                   "I had trouble routing that — try rephrasing or being more specific.",
               });
             } else if (assistantContent.trim().length === 0) {
+              outcome = "empty";
               send({ type: "final", answer: "I couldn't produce an answer." });
+            } else {
+              outcome = "answered";
             }
             close();
             return;
@@ -512,6 +586,7 @@ export async function POST(req: Request) {
             try {
               parsed = JSON.parse(apply.arguments) as ApplyToDashboardArgs;
             } catch {
+              outcome = "error";
               send({
                 type: "error",
                 message: "apply_to_dashboard returned malformed JSON.",
@@ -526,11 +601,21 @@ export async function POST(req: Request) {
               ? filterCompanies(companies, filter).length
               : companies.length;
             if (matched > 0) {
+              outcome = "filter_applied";
               send({
                 type: "filter",
                 view,
                 filter,
                 narration,
+              });
+              phog.capture({
+                distinctId,
+                event: "ask_filter_applied",
+                properties: {
+                  view,
+                  matched_companies: matched,
+                  filter_keys: activeFilterKeys(filter),
+                },
               });
               close();
               return;
@@ -541,6 +626,7 @@ export async function POST(req: Request) {
           // Check for decline short-circuit.
           const decline = toolCalls.find((c) => c.name === "decline");
           if (decline) {
+            outcome = "declined";
             let message = "I can only answer questions about YC Atlas.";
             try {
               const parsed = JSON.parse(decline.arguments) as {
@@ -703,6 +789,7 @@ export async function POST(req: Request) {
           }
         }
 
+        outcome = "truncated";
         send({
           type: "final",
           answer: "I ran several queries but couldn't compose a final answer.",
@@ -710,9 +797,24 @@ export async function POST(req: Request) {
         });
         close();
       } catch (err) {
+        outcome = "error";
         const msg = err instanceof Error ? err.message : String(err);
         send({ type: "error", message: `Grok request failed: ${msg}` });
         close();
+      } finally {
+        // One event per query; per-call tokens and cost live in $ai_generation.
+        phog.capture({
+          distinctId,
+          event: "ask_query_completed",
+          properties: {
+            outcome,
+            iterations,
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            cached_tokens: cachedTokens,
+            total_tokens: totalTokens,
+          },
+        });
       }
     },
     cancel() {
