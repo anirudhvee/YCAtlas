@@ -71,18 +71,35 @@ export async function runInSandbox(
     }
     seed.value.dispose();
 
-    // If the snippet has no `return` keyword, treat it as a single
-    // expression (Grok sometimes forgets the `return` even when told to
-    // include it). Otherwise run it as a statement block.
-    const isExpression = !/\breturn\b/.test(expression);
-    const wrapped = isExpression
-      ? `JSON.stringify((function(){ return (${expression}\n); })());`
-      : `JSON.stringify((function(){ ${expression}\n })());`;
-    const result = ctx.evalCode(wrapped, "ask.js");
+    // The model writes the snippet in several shapes and the old
+    // `/\breturn\b/` heuristic misclassified most of them:
+    //   1. a single expression           `companies.filter(...).length`
+    //   2. expr with a nested return      `companies.filter(c => { return x; })`
+    //   3. statements + trailing expr     `const re = …; companies.filter(re)`
+    //   4. statements + top-level return  `const x = …; return x;`
+    // Evaluate via the program's *completion value* (what `eval` yields:
+    // the value of the last expression statement). That covers 1–3,
+    // including nested returns, and ignores leading declarations. Only a
+    // genuine top-level `return` (4) is a SyntaxError inside `eval`; for
+    // that we fall back to a function wrap. Runtime errors from the
+    // completion eval are surfaced as-is, never masked by the fallback.
+    const completionWrap = `JSON.stringify((0, eval)(${JSON.stringify(expression)}));`;
+    const fnWrap = `JSON.stringify((function(){ ${expression}\n })());`;
+    let result = ctx.evalCode(completionWrap, "ask.js");
     if (result.error) {
-      const msg = ctx.dump(result.error);
+      const dumped = ctx.dump(result.error) as { name?: string };
       result.error.dispose();
-      throw new Error(formatError(msg));
+      const isSyntaxError =
+        dumped && typeof dumped === "object" && dumped.name === "SyntaxError";
+      if (!isSyntaxError) {
+        throw new Error(formatError(dumped));
+      }
+      result = ctx.evalCode(fnWrap, "ask.js");
+      if (result.error) {
+        const msg = ctx.dump(result.error);
+        result.error.dispose();
+        throw new Error(formatError(msg));
+      }
     }
     const json = ctx.dump(result.value) as unknown;
     result.value.dispose();
