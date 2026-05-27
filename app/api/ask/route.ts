@@ -20,7 +20,7 @@ import { runInSandbox } from "@/lib/ask-sandbox";
 const REQUEST_TIMEOUT_MS = 45_000;
 const RATE_LIMIT_PER_MINUTE = 12;
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const MAX_ITERATIONS = 4;
+const MAX_ITERATIONS = 5;
 const MAX_HISTORY_TURNS = 5;
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -360,12 +360,28 @@ export async function POST(req: Request) {
 
       try {
         for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+          if (iter === MAX_ITERATIONS - 1) {
+            // Last turn has tools disabled; tell the model to synthesize from
+            // what it already gathered instead of narrating another query.
+            messages.push({
+              role: "system",
+              content:
+                "Final step: do not call any tool. Answer the user now in prose using only the results already gathered — name the specific companies found and note the gap, or say plainly in one sentence if nothing relevant matched. Never describe a query you would run.",
+            });
+          }
           const completion = await client.chat.completions.create(
             {
               model: "grok-4-1-fast-reasoning",
               messages,
               tools: TOOLS,
-              tool_choice: iter === 0 ? "required" : "auto",
+              // First turn must act; last turn must answer (no more tools) so
+              // a long probe sequence ends in prose, not the canned fallback.
+              tool_choice:
+                iter === 0
+                  ? "required"
+                  : iter === MAX_ITERATIONS - 1
+                    ? "none"
+                    : "auto",
               stream: true,
               stream_options: { include_usage: true },
             },
